@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title_vi or a.title }}{% endblock %}
+{% block body_attrs %}data-article-id="{{ a.id }}" data-lang="vi"{% endblock %}
+{% block content %}
+<main class="reader">
+  <nav class="reader-nav">
+    <a href="/">Danh sách bài</a>
+    <div class="lang-switch" role="group" aria-label="Ngôn ngữ">
+      <button type="button" data-set-lang="vi" aria-pressed="true">Tiếng Việt</button>
+      <button type="button" data-set-lang="en" aria-pressed="false">English</button>
+    </div>
+  </nav>
+
+  <header class="reader-head">
+    <h1>{{ a.title_vi or a.title }}</h1>
+    <p class="orig">{{ a.title }}</p>
+    <p class="meta">
+      <span>{{ a.author }}</span>
+      <span>{{ a.published | date }}</span>
+      <a href="{{ a.url }}" target="_blank" rel="noopener">Mở bài gốc</a>
+    </p>
+    <p class="hint">Bôi đen một thuật ngữ để xem giải thích.</p>
+  </header>
+
+  <article class="prose" id="article-body">
+    <div class="lang-vi">{{ html_vi | safe }}</div>
+    <div class="lang-en" lang="en">{{ html_en | safe }}</div>
+  </article>
+</main>
+
+<button type="button" id="explain-btn" class="explain-btn" hidden>Giải thích thuật ngữ</button>
+
+<aside id="explain-panel" class="panel" hidden aria-live="polite">
+  <div class="panel-bar">
+    <span class="panel-label">Giải thích</span>
+    <button type="button" class="panel-close" aria-label="Đóng">×</button>
+  </div>
+  <div class="panel-body"></div>
+</aside>
+
+<script src="/static/reader.js"></script>
+{% endblock %}

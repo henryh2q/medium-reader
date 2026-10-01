@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="shelf">
+  <header class="shelf-head">
+    <h1>Đọc gì hôm nay</h1>
+    <p>Bài Medium đã được chấm điểm và dịch sẵn. Mới nhất ở trên.</p>
+    <form method="post" action="/admin/run" class="run-form">
+      <button type="submit" {% if running %}disabled{% endif %}>
+        {% if running %}Đang lấy bài…{% else %}Lấy bài mới ngay{% endif %}
+      </button>
+      {% if run == 'started' %}<span>Đã bắt đầu. Tải lại trang sau vài phút để xem bài mới.</span>
+      {% elif run == 'busy' %}<span>Đang có lượt lấy bài khác chạy.</span>{% endif %}
+    </form>
+  </header>
+
+  {% if not articles %}
+  <section class="empty">
+    <p>Chưa có bài nào. Bấm "Lấy bài mới ngay", hoặc chạy <code>python pipeline.py</code> nếu đang ở máy local.</p>
+  </section>
+  {% endif %}
+
+  <ol class="entries">
+  {% for a in articles %}
+    <li class="entry">
+      <span class="score" title="Điểm đáng đọc">{{ a.score }}</span>
+      <div>
+        <h2>
+          {% if a.status == 'translated' %}
+            <a href="/a/{{ a.id }}">{{ a.title_vi or a.title }}</a>
+          {% else %}
+            <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title_vi or a.title }}</a>
+          {% endif %}
+        </h2>
+        <p class="orig">{{ a.title }}</p>
+        {% if a.tldr_vi %}<p class="tldr">{{ a.tldr_vi }}</p>{% endif %}
+        <p class="meta">
+          <span>{{ a.author }}</span>
+          <span>{{ a.published | date }}</span>
+          {% if a.partial %}<span class="tag">Chỉ có tóm tắt, mở bài gốc để đọc</span>
+          {% elif a.status == 'scored' %}<span class="tag">Chờ dịch</span>{% endif %}
+        </p>
+      </div>
+    </li>
+  {% endfor %}
+  </ol>
+</main>
+{% endblock %}
