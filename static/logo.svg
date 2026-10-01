@@ -1,0 +1,31 @@
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d5d86"/>
+      <stop offset="1" stop-color="#143f5c"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- open book -->
+  <path d="M64 42
+           C57 35 44 31 32 31
+           C29.8 31 28 32.8 28 35
+           V88
+           C28 90.2 29.8 92 32 92
+           C44 92 57 96 64 103
+           Z" fill="#eef2f4"/>
+  <path d="M64 42
+           C71 35 84 31 96 31
+           C98.2 31 100 32.8 100 35
+           V88
+           C100 90.2 98.2 92 96 92
+           C84 92 71 96 64 103
+           Z" fill="#ffffff"/>
+  <path d="M64 42 V103" stroke="#c7d2d9" stroke-width="1.5"/>
+  <!-- page lines -->
+  <path d="M38 48 H58 M38 58 H58 M38 68 H54" stroke="#9fb3c2" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M70 48 H90 M70 58 H90 M74 68 H90" stroke="#c7d2d9" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- score star -->
+  <path d="M96 16 L99.4 23 L107 24.1 L101.5 29.5 L102.8 37 L96 33.4 L89.2 37 L90.5 29.5 L85 24.1 L92.6 23 Z"
+        fill="#ffe27a"/>
+</svg>

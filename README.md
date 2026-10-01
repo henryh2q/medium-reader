@@ -40,6 +40,7 @@ Chạy pipeline tự động mỗi sáng 7h (crontab):
 | `pipeline.py` | `fetch` -> `score` -> `translate`, chạy từng bước được |
 | `app.py` | FastAPI: danh sách bài, trang đọc, `POST /api/explain` (có cache SQLite), `POST /admin/import` |
 | `static/reader.js` | Bôi đen -> nút "Giải thích thuật ngữ" -> panel; chuyển VI/EN |
+| `static/logo.svg` | Logo gốc (SVG) — nguồn sinh favicon và icon extension |
 | `extension/` | Extension Chrome/Edge: đưa bài Medium đang đọc (member-only) vào app |
 
 ## Tinh chỉnh
