@@ -3,6 +3,10 @@
 Lấy bài từ các engineering blog qua RSS, dùng Claude chấm điểm "đáng đọc", dịch bài
 tốt nhất sang tiếng Việt, và giải thích thuật ngữ khi bôi đen text.
 
+Tập trung vào 3 chủ đề: **system design**, **interview software engineering**
+(system design interview, coding/algorithm interview, behavioral & career), và
+**AI** (coding agent harness, AI SDLC, AI agent, AI workflow).
+
 ## Cài đặt
 
 ```bash

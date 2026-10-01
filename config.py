@@ -7,22 +7,25 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
-# RSS của các engineering blog
+# RSS tập trung vào: system design, interview software engineering, AI
+# (coding agent harness, AI SDLC, AI agent, AI workflow)
 FEEDS = [
-    "https://netflixtechblog.com/feed",
-    "https://engineering.atspotify.com/feed/",
-    "https://stackoverflow.blog/engineering/feed/",
-    "https://github.blog/engineering/feed/",
-    "https://engineering.fb.com/feed/",
-    "https://aws.amazon.com/blogs/architecture/feed/",
-    "https://martinfowler.com/feed.atom",
+    "https://blog.bytebytego.com/feed",            # system design
+    "https://martinfowler.com/feed.atom",           # system design / architecture
+    "https://blog.pragmaticengineer.com/rss/",      # interview, career, system design
+    "https://simonwillison.net/atom/everything/",   # AI agent / coding harness
+    "https://blog.langchain.dev/rss.xml",           # AI agent / workflow
+    "https://www.latent.space/feed",                # AI engineering / AI SDLC
+    "https://feed.infoq.com/ai-ml-data-eng/",       # AI
 ]
 
 # Mô tả mối quan tâm — model dùng để chấm điểm độ liên quan
 INTERESTS = os.getenv(
     "INTERESTS",
-    "backend engineering, PHP/Laravel, Python/Django, AI engineering, "
-    "agentic systems, system design, code quality, code review, team leadership",
+    "system design, software engineering interview (system design interview, "
+    "coding/algorithm interview, behavioral & career interview for senior/staff engineers), "
+    "AI coding agent harness (Claude Code, Cursor, Devin, OpenHands...), AI SDLC "
+    "(AI trong vòng đời phát triển phần mềm), AI agents, AI workflow automation",
 )
 
 DB_PATH = Path(os.getenv("DB_PATH", BASE_DIR / "data" / "reader.db"))
