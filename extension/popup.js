@@ -36,11 +36,22 @@ sendBtn.addEventListener('click', async () => {
     setStatus('Điền địa chỉ app và import token trước.', 'err');
     return;
   }
+  let appOrigin;
+  try {
+    appOrigin = new URL(appUrl);
+  } catch {
+    setStatus('Địa chỉ app không hợp lệ.', 'err');
+    return;
+  }
+  if (/(^|\.)medium\.com$/.test(appOrigin.hostname)) {
+    setStatus('Ô "Địa chỉ app" phải là địa chỉ server "Đọc gì hôm nay" của bạn, không phải URL bài Medium.', 'err');
+    return;
+  }
   chrome.storage.local.set({ appUrl, token });
 
   // Nếu app chạy ở domain khác railway.app/localhost (đã khai báo sẵn trong manifest),
   // xin thêm quyền truy cập domain đó ngay bây giờ.
-  const origin = `${new URL(appUrl).origin}/*`;
+  const origin = `${appOrigin.origin}/*`;
   const hasPerm = await chrome.permissions.contains({ origins: [origin] });
   if (!hasPerm) {
     const granted = await chrome.permissions.request({ origins: [origin] });

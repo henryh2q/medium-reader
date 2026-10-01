@@ -14,6 +14,7 @@
     #status { margin-top: 10px; font-size: 12px; min-height: 16px; }
     #status.ok { color: #1a7f37; }
     #status.err { color: #c0392b; }
+    .hint { margin-top: 10px; font-size: 11px; color: #888; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -22,7 +23,7 @@
     <h1>Đọc gì hôm nay</h1>
   </div>
 
-  <label for="appUrl">Địa chỉ app</label>
+  <label for="appUrl">Địa chỉ app "Đọc gì hôm nay" (không phải URL bài viết)</label>
   <input id="appUrl" placeholder="https://medium-reader-production.up.railway.app">
 
   <label for="token">Import token</label>
@@ -30,6 +31,8 @@
 
   <button id="send">Đưa bài đang mở vào app</button>
   <div id="status"></div>
+  <p class="hint">Bài viết đang mở trên tab hiện tại sẽ tự được gửi đi — chỉ cần mở
+    đúng bài trên medium.com trước khi bấm.</p>
 
   <script src="popup.js"></script>
 </body>
