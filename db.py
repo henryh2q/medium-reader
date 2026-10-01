@@ -27,7 +27,35 @@ CREATE TABLE IF NOT EXISTS explanations (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (term_key, article_id)
 );
+
+CREATE TABLE IF NOT EXISTS tags (
+    id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS article_tags (
+    article_id INTEGER NOT NULL,
+    tag_id     INTEGER NOT NULL,
+    PRIMARY KEY (article_id, tag_id),
+    FOREIGN KEY (article_id) REFERENCES articles(id),
+    FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
+CREATE INDEX IF NOT EXISTS idx_article_tags_tag ON article_tags(tag_id);
 """
+
+
+def set_article_tags(c, article_id: int, tag_names: list[str]) -> None:
+    """Thay toàn bộ tag của 1 bài. So khớp trùng theo tên nguyên văn (case-sensitive) —
+    "AI Agents" và "ai agents" được coi là 2 tag khác nhau."""
+    c.execute("DELETE FROM article_tags WHERE article_id=?", (article_id,))
+    for raw in tag_names:
+        name = raw.strip()
+        if not name:
+            continue
+        c.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (name,))
+        row = c.execute("SELECT id FROM tags WHERE name=?", (name,)).fetchone()
+        c.execute("INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?,?)",
+                  (article_id, row["id"]))
 
 
 @contextmanager

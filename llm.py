@@ -32,17 +32,27 @@ def _parse_json(text: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
-# ---------- 1. Tóm tắt ----------
+# ---------- 1. Tóm tắt + tag ----------
 
-SUMMARIZE_SYSTEM = """Summarize the article the user sends in 1-2 concise sentences,
-in English, for a software engineer skimming a reading list. Capture what's genuinely
-useful or new in it, not a generic restatement of the title. No preamble, no quotes
-marks around it, just the sentence(s)."""
+SUMMARIZE_SYSTEM = """You help a software engineer triage a reading list.
+
+Given an article's title and content, produce:
+- A 1-2 sentence summary in English capturing what's genuinely useful or new in it,
+  not a generic restatement of the title.
+- 2-3 short topic tags (English, Title Case, e.g. "System Design", "AI Agents",
+  "Career Growth") that best categorize the article for filtering a reading list.
+
+Return ONLY JSON: {"summary": "<1-2 sentences>", "tags": ["<tag1>", "<tag2>"]}"""
 
 
-def summarize_article(title: str, content: str) -> str:
+def summarize_article(title: str, content: str) -> dict:
+    """Trả về {"summary": str, "tags": list[str]}."""
     user = f"Title: {title}\n\nContent:\n{content[:3000]}"
-    return _call(config.MODEL_SUMMARIZE, SUMMARIZE_SYSTEM, user, 200).strip()
+    data = _parse_json(_call(config.MODEL_SUMMARIZE, SUMMARIZE_SYSTEM, user, 300))
+    return {
+        "summary": (data.get("summary") or "").strip(),
+        "tags": [t.strip() for t in data.get("tags", []) if t.strip()][:3],
+    }
 
 
 # ---------- 2. Dịch ----------

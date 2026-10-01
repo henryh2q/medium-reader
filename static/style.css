@@ -49,6 +49,21 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .shelf-head h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
 .shelf-head p { color: var(--muted); margin: 0 0 1.25rem; }
 
+.topic-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1.5rem; }
+.topic-pill {
+  font-size: 0.8125rem; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--rule); border-radius: 999px; padding: 0.3rem 0.75rem;
+}
+.topic-pill:hover { color: var(--ink); border-color: var(--accent); }
+.topic-pill.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.topics { margin: 0.5rem 0 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.topic-pill-sm {
+  font-size: 0.75rem; color: var(--accent); text-decoration: none;
+  background: var(--sheet); border-radius: 999px; padding: 0.15rem 0.6rem;
+}
+.topic-pill-sm:hover { text-decoration: underline; }
+
 .entries { list-style: none; margin: 0; padding: 0; }
 .entry {
   padding: 1.25rem 0;

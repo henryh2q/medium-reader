@@ -52,6 +52,7 @@ class ImportIn(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     author: str = Field(default="", max_length=200)
     html: str = Field(min_length=1, max_length=500_000)
+    tags: list[str] = Field(default_factory=list, max_length=10)
 
 
 @app.post("/admin/import")
@@ -68,11 +69,18 @@ def admin_import(body: ImportIn, request: Request):
     words = len(md.split())
     url = fetcher.clean_url(body.url)
     title = body.title.strip()
+    # Ưu tiên tag thật lấy từ trang (extension đọc được, vd. tag Medium); nếu không
+    # có thì để LLM tự sinh 2-3 tag cùng lúc tóm tắt (không tốn thêm lần gọi riêng).
+    page_tags = [t.strip() for t in body.tags if t.strip()][:3]
+    summary_en = None
+    tags = page_tags
     try:
-        summary_en = llm.summarize_article(title, md)
+        result = llm.summarize_article(title, md)
+        summary_en = result["summary"]
+        if not tags:
+            tags = result["tags"]
     except Exception:
         log.exception("Tóm tắt lỗi khi import %s", url)
-        summary_en = None
     with db.conn() as c:
         cur = c.execute(
             """INSERT OR IGNORE INTO articles (url, title, author, content_en, summary_en, word_count, status)
@@ -81,6 +89,9 @@ def admin_import(body: ImportIn, request: Request):
         )
         if cur.rowcount == 0:
             return {"ok": False, "reason": "Bài đã có trong hệ thống."}
+        article_id = cur.lastrowid
+        if tags:
+            db.set_article_tags(c, article_id, tags)
     return {"ok": True, "words": words}
 
 
@@ -97,16 +108,42 @@ templates.env.filters["date"] = fmt_date
 
 
 @app.get("/")
-def index(request: Request):
+def index(request: Request, tag: str | None = None):
     with db.conn() as c:
-        rows = c.execute(
-            "SELECT * FROM articles ORDER BY created_at DESC LIMIT 200"
-        ).fetchall()
+        if tag:
+            rows = c.execute(
+                """SELECT a.* FROM articles a
+                   JOIN article_tags at ON at.article_id = a.id
+                   JOIN tags t ON t.id = at.tag_id
+                   WHERE t.name = ?
+                   ORDER BY a.created_at DESC LIMIT 200""",
+                (tag,),
+            ).fetchall()
+        else:
+            rows = c.execute(
+                "SELECT * FROM articles ORDER BY created_at DESC LIMIT 200"
+            ).fetchall()
+        article_ids = [r["id"] for r in rows]
+        tags_by_article: dict[int, list[str]] = {aid: [] for aid in article_ids}
+        if article_ids:
+            placeholders = ",".join("?" * len(article_ids))
+            for r in c.execute(
+                f"""SELECT at.article_id, t.name FROM article_tags at
+                    JOIN tags t ON t.id = at.tag_id
+                    WHERE at.article_id IN ({placeholders})
+                    ORDER BY t.name""",
+                article_ids,
+            ):
+                tags_by_article[r["article_id"]].append(r["name"])
+        all_tags = [r["name"] for r in c.execute("SELECT name FROM tags ORDER BY name")]
     with _translating_lock:
         translating_ids = set(_translating)
     return templates.TemplateResponse(request, "index.html", {
         "articles": rows,
         "translating_ids": translating_ids,
+        "tags_by_article": tags_by_article,
+        "all_tags": all_tags,
+        "active_tag": tag,
     })
 
 

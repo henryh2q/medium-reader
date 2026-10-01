@@ -44,7 +44,8 @@ truy cập trang nguồn thay bạn.
    chọn thư mục `extension/`.
 3. Mở bài viết, đọc đến hết trang (để nội dung render đầy đủ).
 4. Bấm icon extension → điền địa chỉ app và `IMPORT_TOKEN` → **Đưa bài đang mở vào app**.
-5. Bài hiện ngay trên trang chủ kèm tóm tắt tiếng Anh (tự sinh lúc import).
+5. Bài hiện ngay trên trang chủ kèm tóm tắt tiếng Anh và 2-3 tag chủ đề (tự sinh
+   lúc import — ưu tiên tag thật lấy từ trang nếu extension tìm thấy, vd. tag Medium).
 
 **Lưu ý:** Chrome trên di động (Android/iOS) không hỗ trợ cài extension bên thứ ba —
 đây là giới hạn của Chrome mobile, không phải của extension này. Chỉ dùng được trên
@@ -69,6 +70,14 @@ Bài đã dịch hiện tiêu đề và tóm tắt bằng tiếng Việt, không
 "đã dịch" thể hiện qua chính tiêu đề tiếng Việt, không cần nhãn riêng). Mỗi bài đã dịch
 có ghi nguồn (link bài gốc + tác giả) ở cuối trang đọc, cùng dòng nhắc đây là bản dịch
 không chính thức — bản quyền nội dung thuộc về tác giả gốc.
+
+## Tag chủ đề
+
+Mỗi bài có 2-3 tag chủ đề: nếu extension tìm thấy tag thật trên trang (hiện chỉ áp
+dụng với Medium — link `/tag/<slug>` đầu bài viết) thì dùng luôn; nếu không, server
+để Claude tự sinh tag cùng lúc tóm tắt lúc import (không tốn thêm lần gọi riêng).
+Bấm vào một tag (trên thanh lọc đầu trang, hoặc tag nhỏ dưới mỗi bài) để lọc danh
+sách theo đúng chủ đề đó (`GET /?tag=<tên tag>`).
 
 ## Thêm vào màn hình chính (mobile)
 

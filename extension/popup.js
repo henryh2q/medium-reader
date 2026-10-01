@@ -22,10 +22,18 @@ function extractArticle() {
   clone.querySelectorAll('header, button').forEach((el) => el.remove());
   const title = document.title.replace(/\s*\|\s*by.*$/, '').trim();
   const authorLink = document.querySelector('a[rel="author"], a[data-testid="authorName"]');
+  // Medium hiện tag bài viết dạng link trỏ tới /tag/<slug> ngay trên đầu bài; site
+  // khác thường không có cấu trúc này nên mảng rỗng là bình thường (server sẽ tự
+  // sinh tag bằng LLM khi không có tag thật từ trang).
+  const tagLinks = [...document.querySelectorAll('a[href*="/tag/"]')]
+    .map((a) => a.textContent.trim())
+    .filter(Boolean);
+  const tags = [...new Set(tagLinks)].slice(0, 3);
   return {
     title,
     author: authorLink ? authorLink.textContent.trim() : '',
     html: clone.innerHTML,
+    tags,
   };
 }
 
@@ -80,7 +88,7 @@ sendBtn.addEventListener('click', async () => {
       type: 'import',
       appUrl: appOrigin.origin,
       token,
-      payload: { url: tab.url, title: result.title, author: result.author, html: result.html },
+      payload: { url: tab.url, title: result.title, author: result.author, html: result.html, tags: result.tags },
     },
     (resp) => {
       if (chrome.runtime.lastError) {
