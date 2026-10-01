@@ -13,8 +13,8 @@ const setStatus = (text, cls) => {
   statusEl.className = cls || '';
 };
 
-// Chạy trong trang Medium đang mở để lấy nội dung bài viết đã render (bạn đang đọc
-// bằng tài khoản member của mình) — không tự động truy cập Medium thay bạn.
+// Chạy trong trang đang mở để lấy nội dung bài viết đã render (bạn đang tự đọc,
+// kể cả nội dung cần đăng nhập) — không tự động truy cập trang nào thay bạn.
 function extractArticle() {
   const article = document.querySelector('article');
   if (!article) return null;
@@ -43,31 +43,20 @@ sendBtn.addEventListener('click', async () => {
     setStatus('Địa chỉ app không hợp lệ.', 'err');
     return;
   }
-  if (/(^|\.)medium\.com$/.test(appOrigin.hostname)) {
-    setStatus('Ô "Địa chỉ app" phải là địa chỉ server "Đọc gì hôm nay" của bạn, không phải URL bài Medium.', 'err');
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !/^https?:\/\//.test(tab.url || '')) {
+    setStatus('Mở một bài viết trên trình duyệt trước.', 'err');
     return;
   }
+  if (new URL(tab.url).origin === appOrigin.origin) {
+    setStatus('Ô "Địa chỉ app" phải là địa chỉ server "Đọc gì hôm nay" của bạn, không phải trang bạn đang đọc.', 'err');
+    return;
+  }
+
   // Chỉ giữ scheme+host+port — bỏ mọi path/query người dùng lỡ dán kèm, để
   // request luôn gọi đúng {origin}/admin/import thay vì cộng dồn path thừa.
   chrome.storage.local.set({ appUrl: appOrigin.origin, token });
-
-  // Nếu app chạy ở domain khác railway.app/localhost (đã khai báo sẵn trong manifest),
-  // xin thêm quyền truy cập domain đó ngay bây giờ.
-  const origin = `${appOrigin.origin}/*`;
-  const hasPerm = await chrome.permissions.contains({ origins: [origin] });
-  if (!hasPerm) {
-    const granted = await chrome.permissions.request({ origins: [origin] });
-    if (!granted) {
-      setStatus('Cần cấp quyền truy cập địa chỉ app để gửi dữ liệu.', 'err');
-      return;
-    }
-  }
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab || !/^https:\/\/([a-z0-9-]+\.)?medium\.com\//.test(tab.url || '')) {
-    setStatus('Mở một bài viết trên medium.com trước.', 'err');
-    return;
-  }
 
   setStatus('Đang đọc nội dung bài…');
   let result;
