@@ -34,6 +34,16 @@ body {
 a { color: var(--accent); }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* Thanh tiến độ vô định: hiện khi có bài đang dịch, không biểu thị % cụ thể */
+.progress-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 50; overflow: hidden; background: transparent; }
+.progress-bar[hidden] { display: none; }
+.progress-bar-fill { position: absolute; top: 0; bottom: 0; width: 40%; background: var(--accent); animation: progress-slide 1.1s ease-in-out infinite; }
+@keyframes progress-slide {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .progress-bar-fill { animation-duration: 2.4s; } }
+
 /* ---------- Danh sách ---------- */
 .shelf { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
 .shelf-head h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
@@ -44,10 +54,14 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   padding: 1.25rem 0;
   border-top: 1px solid var(--rule);
 }
+.entry[data-status="translating"] { opacity: 0.5; pointer-events: none; }
 .entry h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; display: flex; align-items: baseline; gap: 0.5rem; }
 .entry h2 a { color: var(--ink); text-decoration: none; }
 .entry h2 a:hover { color: var(--accent); }
-.desc { color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0; line-height: 1.5; }
+.desc {
+  color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
 .meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; color: var(--muted); font-size: 0.8125rem; margin: 0.6rem 0 0; }
 .tag { color: var(--ink); background: var(--marker); padding: 0 0.35rem; border-radius: 2px; }
 .tag-err { background: #f6c6c0; }
@@ -58,6 +72,13 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .translate-one:hover { background: var(--sheet); }
 .translate-one:disabled { opacity: 0.55; cursor: default; }
+.spinner {
+  flex-shrink: 0; width: 1.1rem; height: 1.1rem; border-radius: 999px;
+  border: 2px solid var(--rule); border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.6s; } }
 .empty pre { background: var(--sheet); padding: 0.75rem 1rem; border-radius: 6px; }
 
 /* ---------- Nút nổi: dịch hàng loạt ---------- */

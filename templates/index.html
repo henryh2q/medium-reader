@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<div id="progress-bar" class="progress-bar" {% if not translating_ids %}hidden{% endif %}><div class="progress-bar-fill"></div></div>
 <main class="shelf">
   <header class="shelf-head">
     <h1>Đọc gì hôm nay</h1>
@@ -20,13 +21,14 @@
         data-title="{{ a.title }}">
       <div>
         <h2>
-          {% if a.status == 'translated' %}
+          {% if a.id in translating_ids %}
+            <span>{{ a.title }}</span>
+            <span class="spinner" title="Đang dịch…" aria-label="Đang dịch…"></span>
+          {% elif a.status == 'translated' %}
             <a href="/a/{{ a.id }}">{{ a.title_vi or a.title }}</a>
           {% else %}
             <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
-            {% if a.id not in translating_ids %}
             <button type="button" class="translate-one" data-id="{{ a.id }}" title="Dịch bài này" aria-label="Dịch bài này">⇄</button>
-            {% endif %}
           {% endif %}
         </h2>
         {% set desc = a.summary_vi if a.status == 'translated' else a.summary_en %}

@@ -1,11 +1,93 @@
 (() => {
   const entries = [...document.querySelectorAll('.entry')];
+  const POLL_MS = 3000;
+  let pollTimer = null;
+
+  const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+
+  // ---------- Theo dõi tiến độ các bài đang dịch ----------
+  const progressBar = document.getElementById('progress-bar');
+  const trackingIds = new Set(
+    entries.filter((e) => e.dataset.status === 'translating').map((e) => Number(e.dataset.id)),
+  );
+  const syncProgressBar = () => { progressBar.hidden = trackingIds.size === 0; };
+  syncProgressBar();
+
+  // Xoá mọi dấu hiệu trạng thái tạm (spinner, tag, icon dịch) trước khi áp trạng thái
+  // mới, để không bao giờ hiện lẫn hai trạng thái cùng lúc (vd. "Đang dịch…" + "Dịch lỗi").
+  const clearTransientUI = (entry) => {
+    entry.querySelector('.spinner')?.remove();
+    entry.querySelector('.translate-one')?.remove();
+    entry.querySelectorAll('.meta .tag').forEach((el) => el.remove());
+  };
+
+  const applyResult = (entry, info) => {
+    clearTransientUI(entry);
+    entry.dataset.status = info.status;
+    if (info.status === 'translated') {
+      entry.querySelector('h2').innerHTML =
+        `<a href="/a/${info.id}">${escapeHtml(info.title_vi || entry.dataset.title)}</a>`;
+      const descEl = entry.querySelector('.desc');
+      if (info.summary_vi) {
+        if (descEl) descEl.textContent = info.summary_vi;
+        else entry.querySelector('h2').insertAdjacentHTML('afterend', `<p class="desc">${escapeHtml(info.summary_vi)}</p>`);
+      }
+    } else if (info.status === 'failed') {
+      const h2 = entry.querySelector('h2');
+      h2.insertAdjacentHTML('beforeend',
+        `<button type="button" class="translate-one" data-id="${info.id}" title="Dịch bài này" aria-label="Dịch bài này">⇄</button>`);
+      bindTranslateButton(h2.querySelector('.translate-one'));
+      entry.querySelector('.meta').insertAdjacentHTML('beforeend', '<span class="tag tag-err">Dịch lỗi</span>');
+      alert(`Dịch lỗi: "${entry.dataset.title}". Bấm icon ⇄ để thử lại.`);
+    }
+  };
+
+  const poll = async () => {
+    if (!trackingIds.size) {
+      pollTimer = null;
+      return;
+    }
+    try {
+      const res = await fetch(`/api/status?ids=${[...trackingIds].join(',')}`);
+      if (res.ok) {
+        const { articles } = await res.json();
+        for (const info of articles) {
+          if (info.status === 'translating') continue;
+          const entry = document.querySelector(`.entry[data-id="${info.id}"]`);
+          trackingIds.delete(info.id);
+          if (entry) applyResult(entry, info);
+        }
+        syncProgressBar();
+      }
+    } catch {
+      // bỏ qua, thử lại ở vòng poll tiếp theo
+    }
+    pollTimer = trackingIds.size ? setTimeout(poll, POLL_MS) : null;
+  };
+
+  const startTracking = (id) => {
+    trackingIds.add(id);
+    syncProgressBar();
+    if (!pollTimer) pollTimer = setTimeout(poll, POLL_MS);
+  };
+
+  const markTranslating = (id) => {
+    const entry = document.querySelector(`.entry[data-id="${id}"]`);
+    if (!entry) return;
+    clearTransientUI(entry);
+    entry.dataset.status = 'translating';
+    entry.querySelector('h2').insertAdjacentHTML('beforeend',
+      '<span class="spinner" title="Đang dịch…" aria-label="Đang dịch…"></span>');
+    entry.querySelector('.meta').insertAdjacentHTML('beforeend', '<span class="tag">Đang dịch…</span>');
+  };
 
   // ---------- Dịch 1 bài ----------
-  document.querySelectorAll('.translate-one').forEach((btn) => {
+  const bindTranslateButton = (btn) => {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
-      const id = btn.dataset.id;
+      const id = Number(btn.dataset.id);
       btn.disabled = true;
       try {
         const res = await fetch(`/admin/translate/${id}`, { method: 'POST' });
@@ -15,9 +97,13 @@
         btn.disabled = false;
         return;
       }
-      setTimeout(() => location.reload(), 1500);
+      markTranslating(id);
+      startTracking(id);
     });
-  });
+  };
+  document.querySelectorAll('.translate-one').forEach(bindTranslateButton);
+
+  if (trackingIds.size) poll();
 
   // ---------- Dịch hàng loạt ----------
   const fab = document.getElementById('batch-fab');
@@ -28,9 +114,8 @@
   const selectAll = document.getElementById('select-all');
   const submitBtn = document.getElementById('batch-submit');
 
-  const pending = entries.filter((e) => e.dataset.status === 'new' || e.dataset.status === 'failed');
-
   const openModal = () => {
+    const pending = entries.filter((e) => e.dataset.status === 'new' || e.dataset.status === 'failed');
     list.innerHTML = '';
     if (!pending.length) {
       const li = document.createElement('li');
@@ -86,7 +171,8 @@
       submitBtn.disabled = false;
       return;
     }
+    ids.forEach((id) => { markTranslating(id); startTracking(id); });
     modal.hidden = true;
-    setTimeout(() => location.reload(), 1500);
+    submitBtn.disabled = false;
   });
 })();

@@ -214,6 +214,36 @@ def admin_translate_batch(body: TranslateBatchIn):
     return {"ok": True, "count": len(ids)}
 
 
+@app.get("/api/status")
+def api_status(ids: str):
+    try:
+        id_list = [int(x) for x in ids.split(",") if x]
+    except ValueError:
+        raise HTTPException(400, "ids không hợp lệ")
+    if not id_list:
+        return {"articles": []}
+    with db.conn() as c:
+        placeholders = ",".join("?" * len(id_list))
+        rows = c.execute(
+            f"""SELECT id, status, title, title_vi, summary_vi
+                FROM articles WHERE id IN ({placeholders})""",
+            id_list,
+        ).fetchall()
+    with _translating_lock:
+        translating_ids = set(_translating)
+    return {
+        "articles": [
+            {
+                "id": r["id"],
+                "status": "translating" if r["id"] in translating_ids else r["status"],
+                "title_vi": r["title_vi"],
+                "summary_vi": r["summary_vi"],
+            }
+            for r in rows
+        ]
+    }
+
+
 @app.get("/a/{article_id}")
 def article(request: Request, article_id: int):
     with db.conn() as c:

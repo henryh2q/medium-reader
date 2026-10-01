@@ -27,7 +27,7 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | `config.py` | Model dùng để dịch/giải thích, token xác thực extension |
 | `fetcher.py` | HTML (từ extension) -> Markdown |
 | `llm.py` | Tóm tắt, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
-| `app.py` | FastAPI: danh sách bài, trang đọc, `POST /admin/import`, dịch 1 bài/hàng loạt |
+| `app.py` | FastAPI: danh sách bài, trang đọc, `POST /admin/import`, dịch 1 bài/hàng loạt, `GET /api/status` (polling tiến độ) |
 | `static/translate.js` | Icon dịch cạnh từng bài + nút nổi mở modal "Dịch hàng loạt" (chọn tất cả) |
 | `static/reader.js` | Bôi đen -> nút "Giải thích thuật ngữ" -> panel; chuyển VI/EN |
 | `static/logo.svg` | Logo gốc (SVG) — nguồn sinh favicon và icon extension |
@@ -58,6 +58,13 @@ Chrome/Edge desktop.
   "Chọn tất cả bài chưa dịch") → "Dịch các bài đã chọn". Mỗi bài dịch trong một thread
   nền riêng, không chặn lẫn nhau; bài đang dịch hoặc đã dịch tự động không xuất hiện
   trong danh sách chọn.
+
+Trong lúc dịch, cả trang hiện một thanh tiến độ vô định ở trên cùng (không có % cụ thể
+vì server không biết chính xác còn bao lâu), bài đang dịch bị làm mờ và không click được,
+có spinner xoay cạnh tiêu đề. `static/translate.js` tự polling `GET /api/status` mỗi 3
+giây để biết khi nào xong — **không cần tải lại trang**: tiêu đề, tóm tắt tự chuyển sang
+tiếng Việt ngay khi dịch xong. Nếu dịch lỗi, trang báo ngay bằng popup và hiện lại icon
+⇄ để thử dịch lại, không phải đợi tải lại trang mới biết.
 
 Bài đã dịch hiện tiêu đề và tóm tắt bằng tiếng Việt, không còn icon dịch (trạng thái
 "đã dịch" thể hiện qua chính tiêu đề tiếng Việt, không cần nhãn riêng). Mỗi bài đã dịch
