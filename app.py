@@ -1,5 +1,4 @@
 """Web đọc bài:  uvicorn app:app --reload"""
-import base64
 import json
 import logging
 import re
@@ -10,7 +9,7 @@ from contextlib import asynccontextmanager
 import markdown
 import nh3
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -36,45 +35,6 @@ templates = Jinja2Templates(directory=config.BASE_DIR / "templates")
 
 _translating: set[int] = set()
 _translating_lock = threading.Lock()
-
-
-# ---------- Basic auth ----------
-
-def _auth_ok(header: str) -> bool:
-    if not header.startswith("Basic "):
-        return False
-    try:
-        user, _, pw = base64.b64decode(header[6:]).decode("utf-8").partition(":")
-    except Exception:
-        return False
-    return (secrets.compare_digest(user.encode(), config.AUTH_USER.encode())
-            and secrets.compare_digest(pw.encode(), config.AUTH_PASS.encode()))
-
-
-PUBLIC_PATHS = ("/healthz", "/admin/import", "/favicon.ico")
-# Icon/manifest trình duyệt tự fetch khi Add to Home Screen hoặc hiện favicon, không
-# kèm Authorization header — phải công khai, nếu không iOS/Android chỉ fallback về
-# icon chữ cái đầu mặc định thay vì logo thật.
-PUBLIC_STATIC_PREFIXES = ("/static/favicon/", "/static/manifest.json", "/static/logo.svg")
-
-
-@app.middleware("http")
-async def basic_auth(request: Request, call_next):
-    path = request.url.path
-    if path in PUBLIC_PATHS or path.startswith(PUBLIC_STATIC_PREFIXES):
-        return await call_next(request)
-    if not (config.AUTH_USER and config.AUTH_PASS):
-        if config.ON_RAILWAY:  # fail closed: không lộ app + API key ra internet
-            return Response("Chưa đặt BASIC_AUTH_USER / BASIC_AUTH_PASS.", status_code=503)
-        return await call_next(request)
-    if _auth_ok(request.headers.get("authorization", "")):
-        # Chặn CSRF: trình duyệt tự gửi basic auth kèm request từ trang khác
-        origin = request.headers.get("origin")
-        if request.method == "POST" and origin and origin.split("://")[-1] != request.headers.get("host"):
-            return Response("Sai nguồn gửi request.", status_code=403)
-        return await call_next(request)
-    return Response("Cần đăng nhập.", status_code=401,
-                    headers={"WWW-Authenticate": 'Basic realm="reader", charset="UTF-8"'})
 
 
 @app.get("/healthz")

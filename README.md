@@ -39,8 +39,7 @@ Mở bài bạn muốn đọc trên trình duyệt (đăng nhập tài khoản m
 extension để gửi **nội dung đã render trên trang** về app — không có bot nào tự động
 truy cập trang nguồn thay bạn.
 
-1. Đặt `IMPORT_TOKEN` (chuỗi ngẫu nhiên dài, khác `BASIC_AUTH_PASS`) trong `.env` hoặc
-   biến môi trường Railway.
+1. Đặt `IMPORT_TOKEN` (chuỗi ngẫu nhiên dài) trong `.env` hoặc biến môi trường Railway.
 2. Chrome/Edge → `chrome://extensions` → bật **Developer mode** → **Load unpacked** →
    chọn thư mục `extension/`.
 3. Mở bài viết, đọc đến hết trang (để nội dung render đầy đủ).
@@ -76,13 +75,14 @@ không chính thức — bản quyền nội dung thuộc về tác giả gốc.
 - **iOS (Safari):** Share → "Add to Home Screen". Icon và tên app lấy từ thẻ
   `apple-touch-icon`/`apple-mobile-web-app-title` trong `templates/base.html`.
 - **Android (Chrome):** menu ⋮ → "Add to Home screen", dùng `static/manifest.json`.
-- Vì dùng Basic Auth, mỗi lần mở app từ màn hình chính (chế độ standalone) trình duyệt
-  sẽ hỏi lại mật khẩu — đây là giới hạn của Basic Auth trong WebKit/Chrome standalone,
-  không có cách bỏ qua nếu vẫn giữ Basic Auth (cách khắc phục là chuyển sang đăng nhập
-  bằng cookie session, chưa áp dụng).
 
 ## Giới hạn đã biết
 
+- **App hoàn toàn công khai, không có đăng nhập.** Ai biết URL cũng đọc được danh
+  sách bài, đọc nội dung đã dịch, và bấm nút dịch (tốn token Claude của bạn). Chỉ
+  `/admin/import` có xác thực riêng bằng `IMPORT_TOKEN`. Nếu cần hạn chế truy cập,
+  cân nhắc đặt lại một lớp xác thực (Basic Auth, hoặc Railway's access control) hoặc
+  không chia sẻ URL.
 - Dùng cho cá nhân. Không public bản dịch vì nội dung thuộc bản quyền tác giả.
 - Bôi đen cắt ngang nhiều định dạng (vd. nửa chữ đậm) vẫn giải thích được, chỉ là không tô vệt dạ quang.
 - Trạng thái "đang dịch" lưu trong bộ nhớ process — chạy nhiều worker/instance cùng lúc
@@ -96,19 +96,16 @@ không chính thức — bản quyền nội dung thuộc về tác giả gốc.
 4. Tab **Variables**:
    ```
    ANTHROPIC_API_KEY=sk-ant-...
-   BASIC_AUTH_USER=haihq
-   BASIC_AUTH_PASS=<mật khẩu dài, ngẫu nhiên>
-   IMPORT_TOKEN=<chuỗi ngẫu nhiên dài khác, cho extension>
+   IMPORT_TOKEN=<chuỗi ngẫu nhiên dài, cho extension>
    DB_PATH=/data/reader.db
    ```
 5. Settings → Networking → **Generate Domain**.
 6. Settings → giữ **1 replica** (trạng thái dịch lưu in-memory, nhiều replica sẽ không
    đồng bộ với nhau).
-7. Mở domain, đăng nhập, cài extension trỏ về domain này.
+7. Mở domain, cài extension trỏ về domain này.
 
 Bảo mật:
-- Trên Railway, nếu thiếu `BASIC_AUTH_USER`/`BASIC_AUTH_PASS` thì app trả về 503 thay vì mở toang.
-- Request POST từ domain khác bị chặn (chống CSRF).
-- `/healthz` và `/admin/import` không qua Basic Auth; `/admin/import` tự xác thực bằng
-  header `X-Import-Token` riêng (không đặt `IMPORT_TOKEN` thì endpoint từ chối phục vụ).
+- **App không yêu cầu đăng nhập** — xem phần Giới hạn đã biết ở trên.
+- `/admin/import` tự xác thực bằng header `X-Import-Token` riêng (không đặt
+  `IMPORT_TOKEN` thì endpoint từ chối phục vụ).
 - Nên bật **Usage limit** trong phần billing của Railway, và đặt giới hạn chi tiêu ở Anthropic Console.
