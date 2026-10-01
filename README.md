@@ -73,8 +73,11 @@ trên trình duyệt (đã đăng nhập member) về app. Không có bot nào t
    chọn thư mục `extension/`.
 3. Mở một bài Medium member-only, đăng nhập bằng tài khoản trả phí, đọc đến hết trang.
 4. Bấm icon extension → điền địa chỉ app và `IMPORT_TOKEN` → **Đưa bài đang mở vào app**.
-5. Bài được thêm với trạng thái `new`, sẽ được chấm điểm ở lượt `pipeline.py score` /
-   "Lấy bài mới ngay" tiếp theo như mọi bài khác.
+5. Bài được thêm thẳng vào trạng thái `scored` (bỏ qua chấm điểm LLM — bạn đã tự
+   chọn đưa bài vào nên coi như đã duyệt) và hiện ngay trên trang chủ với nhãn "Chờ dịch".
+6. Bấm **"Dịch bài đang chờ"** trên trang chủ để dịch riêng các bài đang chờ (không
+   fetch RSS, không chấm điểm) — dùng khi bạn chỉ muốn xử lý bài vừa đưa vào qua extension
+   mà không tốn thêm token lấy/chấm bài RSS mới.
 
 ## Deploy lên Railway
 

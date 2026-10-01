@@ -22,23 +22,29 @@ def next_run(now: datetime, hour: int) -> datetime:
     return target if target > now else target + timedelta(days=1)
 
 
-def run_now() -> bool:
-    """Chạy pipeline ở thread nền. Trả về False nếu đang có lượt khác chạy."""
+def run_now(task=pipeline.run_all, label: str = "Pipeline") -> bool:
+    """Chạy `task` ở thread nền. Trả về False nếu đang có lượt khác chạy."""
     if not _lock.acquire(blocking=False):
         return False
 
     def job():
         try:
-            log.info("Pipeline bắt đầu")
-            pipeline.run_all()
-            log.info("Pipeline xong")
+            log.info("%s bắt đầu", label)
+            task()
+            log.info("%s xong", label)
         except Exception:
-            log.exception("Pipeline lỗi")
+            log.exception("%s lỗi", label)
         finally:
             _lock.release()
 
     threading.Thread(target=job, daemon=True).start()
     return True
+
+
+def translate_now() -> bool:
+    """Chỉ chạy bước dịch (không fetch RSS, không chấm điểm) — dùng cho bài đã
+    được đưa vào thủ công qua extension và coi như đã duyệt sẵn."""
+    return run_now(task=pipeline.translate, label="Dịch")
 
 
 def is_running() -> bool:

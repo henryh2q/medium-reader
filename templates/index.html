@@ -12,6 +12,14 @@
       {% elif run == 'busy' %}<span>Đang có lượt lấy bài khác chạy.</span>{% endif %}
     </form>
 
+    <form method="post" action="/admin/translate" class="run-form">
+      <button type="submit" {% if running %}disabled{% endif %}>
+        {% if running %}Đang xử lý…{% else %}Dịch bài đang chờ{% endif %}
+      </button>
+      {% if run == 'translate_started' %}<span>Đã bắt đầu dịch. Tải lại trang sau vài phút.</span>
+      {% elif run == 'busy' %}<span>Đang có lượt chạy khác.</span>{% endif %}
+    </form>
+
     {% if stats %}
     <p class="run-stats">
       Lần chạy gần nhất ({{ stats.finished_at | datetime }}):

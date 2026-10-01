@@ -79,6 +79,14 @@ def admin_run():
     return RedirectResponse("/?run=started" if started else "/?run=busy", status_code=303)
 
 
+@app.post("/admin/translate")
+def admin_translate():
+    # Chỉ dịch các bài đang chờ (status='scored') — không fetch RSS, không chấm điểm.
+    # Dùng cho bài đưa vào thủ công qua extension, đã được coi là duyệt sẵn.
+    started = scheduler.translate_now()
+    return RedirectResponse("/?run=translate_started" if started else "/?run=busy", status_code=303)
+
+
 class ImportIn(BaseModel):
     url: str = Field(min_length=1, max_length=2000)
     title: str = Field(min_length=1, max_length=500)
@@ -100,10 +108,12 @@ def admin_import(body: ImportIn, request: Request):
     words = len(md.split())
     url = fetcher.clean_url(body.url)
     with db.conn() as c:
+        # status='scored' ngay: bài do chính bạn chọn đưa vào coi như đã "duyệt",
+        # bỏ qua bước chấm điểm LLM. score=10 để luôn ưu tiên dịch trước các bài khác.
         cur = c.execute(
             """INSERT OR IGNORE INTO articles
-               (url, title, author, feed, content_en, word_count, partial, status)
-               VALUES (?, ?, ?, 'manual-import', ?, ?, 0, 'new')""",
+               (url, title, author, feed, content_en, word_count, partial, status, score, score_reason)
+               VALUES (?, ?, ?, 'manual-import', ?, ?, 0, 'scored', 10, 'Tự đưa vào qua extension')""",
             (url, body.title.strip(), body.author.strip(), md, words),
         )
         if cur.rowcount == 0:
