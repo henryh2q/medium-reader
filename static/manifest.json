@@ -1,0 +1,12 @@
+{
+  "name": "Đọc gì hôm nay",
+  "short_name": "Đọc gì hôm nay",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef2f4",
+  "theme_color": "#1d5d86",
+  "icons": [
+    { "src": "/static/favicon/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/favicon/favicon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -16,7 +16,7 @@
     <p class="orig">{{ a.title }}</p>
     <p class="meta">
       <span>{{ a.author }}</span>
-      <span>{{ a.published | date }}</span>
+      <span>{{ a.created_at | date }}</span>
       <a href="{{ a.url }}" target="_blank" rel="noopener">Mở bài gốc</a>
     </p>
     <p class="hint">Bôi đen một thuật ngữ để xem giải thích.</p>
@@ -26,6 +26,12 @@
     <div class="lang-vi">{{ html_vi | safe }}</div>
     <div class="lang-en" lang="en">{{ html_en | safe }}</div>
   </article>
+
+  <footer class="attribution">
+    Nguồn: <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
+    {% if a.author %}bởi {{ a.author }}{% endif %} — bản dịch không chính thức, chỉ dùng
+    cá nhân. Bản quyền nội dung thuộc về tác giả gốc.
+  </footer>
 </main>
 
 <button type="button" id="explain-btn" class="explain-btn" hidden>Giải thích thuật ngữ</button>

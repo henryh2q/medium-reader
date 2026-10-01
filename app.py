@@ -4,12 +4,13 @@ import json
 import logging
 import re
 import secrets
+import threading
 from contextlib import asynccontextmanager
 
 import markdown
 import nh3
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -18,21 +19,23 @@ import config
 import db
 import fetcher
 import llm
-import scheduler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+log = logging.getLogger("app")
 
 
 @asynccontextmanager
 async def lifespan(_app):
     db.init_db()
-    scheduler.start()
     yield
 
 
 app = FastAPI(title="Đọc gì hôm nay", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=config.BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=config.BASE_DIR / "templates")
+
+_translating: set[int] = set()
+_translating_lock = threading.Lock()
 
 
 # ---------- Basic auth ----------
@@ -73,20 +76,6 @@ def healthz():
     return {"ok": True}
 
 
-@app.post("/admin/run")
-def admin_run():
-    started = scheduler.run_now()
-    return RedirectResponse("/?run=started" if started else "/?run=busy", status_code=303)
-
-
-@app.post("/admin/translate")
-def admin_translate():
-    # Chỉ dịch các bài đang chờ (status='scored') — không fetch RSS, không chấm điểm.
-    # Dùng cho bài đưa vào thủ công qua extension, đã được coi là duyệt sẵn.
-    started = scheduler.translate_now()
-    return RedirectResponse("/?run=translate_started" if started else "/?run=busy", status_code=303)
-
-
 class ImportIn(BaseModel):
     url: str = Field(min_length=1, max_length=2000)
     title: str = Field(min_length=1, max_length=500)
@@ -108,12 +97,9 @@ def admin_import(body: ImportIn, request: Request):
     words = len(md.split())
     url = fetcher.clean_url(body.url)
     with db.conn() as c:
-        # status='scored' ngay: bài do chính bạn chọn đưa vào coi như đã "duyệt",
-        # bỏ qua bước chấm điểm LLM. score=10 để luôn ưu tiên dịch trước các bài khác.
         cur = c.execute(
-            """INSERT OR IGNORE INTO articles
-               (url, title, author, feed, content_en, word_count, partial, status, score, score_reason)
-               VALUES (?, ?, ?, 'manual-import', ?, ?, 0, 'scored', 10, 'Tự đưa vào qua extension')""",
+            """INSERT OR IGNORE INTO articles (url, title, author, content_en, word_count, status)
+               VALUES (?, ?, ?, ?, ?, 'new')""",
             (url, body.title.strip(), body.author.strip(), md, words),
         )
         if cur.rowcount == 0:
@@ -123,39 +109,79 @@ def admin_import(body: ImportIn, request: Request):
 
 def render_md(text: str | None) -> str:
     html = markdown.markdown(text or "", extensions=["fenced_code", "tables"])
-    return nh3.clean(html)  # nội dung đến từ RSS/model => luôn sanitize
+    return nh3.clean(html)  # nội dung đến từ bên ngoài => luôn sanitize
 
 
 def fmt_date(iso: str | None) -> str:
     return f"{iso[8:10]}/{iso[5:7]}/{iso[:4]}" if iso else ""
 
 
-def fmt_datetime(iso: str | None) -> str:
-    if not iso:
-        return ""
-    date, _, time = iso.partition(" ")
-    return f"{date[8:10]}/{date[5:7]}/{date[:4]} {time[:5]}"
-
-
 templates.env.filters["date"] = fmt_date
-templates.env.filters["datetime"] = fmt_datetime
 
 
 @app.get("/")
 def index(request: Request):
     with db.conn() as c:
         rows = c.execute(
-            """SELECT id, url, title, title_vi, tldr_vi, author, published, score, partial, status
-               FROM articles WHERE status IN ('translated', 'scored')
-               ORDER BY COALESCE(published, created_at) DESC LIMIT 100"""
+            "SELECT * FROM articles ORDER BY created_at DESC LIMIT 200"
         ).fetchall()
-        stats = c.execute("SELECT * FROM run_stats WHERE id=1").fetchone()
+    with _translating_lock:
+        translating_ids = set(_translating)
     return templates.TemplateResponse(request, "index.html", {
         "articles": rows,
-        "running": scheduler.is_running(),
-        "run": request.query_params.get("run"),
-        "stats": stats,
+        "translating_ids": translating_ids,
     })
+
+
+def _translate_one(article_id: int) -> None:
+    with _translating_lock:
+        if article_id in _translating:
+            return
+        _translating.add(article_id)
+    try:
+        with db.conn() as c:
+            a = c.execute("SELECT content_en FROM articles WHERE id=?", (article_id,)).fetchone()
+        if not a:
+            return
+        vi = llm.translate_markdown(a["content_en"])
+        with db.conn() as c:
+            c.execute("UPDATE articles SET status='translated', content_vi=? WHERE id=?",
+                      (vi, article_id))
+        log.info("Đã dịch #%d", article_id)
+    except Exception:
+        log.exception("Dịch lỗi #%d", article_id)
+        with db.conn() as c:
+            c.execute("UPDATE articles SET status='failed' WHERE id=?", (article_id,))
+    finally:
+        with _translating_lock:
+            _translating.discard(article_id)
+
+
+@app.post("/admin/translate/{article_id}")
+def admin_translate_one(article_id: int):
+    with db.conn() as c:
+        a = c.execute("SELECT id FROM articles WHERE id=?", (article_id,)).fetchone()
+    if not a:
+        raise HTTPException(404, "Không tìm thấy bài viết")
+    threading.Thread(target=_translate_one, args=(article_id,), daemon=True).start()
+    return {"ok": True}
+
+
+class TranslateBatchIn(BaseModel):
+    article_ids: list[int] = Field(min_length=1, max_length=200)
+
+
+@app.post("/admin/translate-batch")
+def admin_translate_batch(body: TranslateBatchIn):
+    with db.conn() as c:
+        placeholders = ",".join("?" * len(body.article_ids))
+        rows = c.execute(
+            f"SELECT id FROM articles WHERE id IN ({placeholders})", body.article_ids
+        ).fetchall()
+    ids = [r["id"] for r in rows]
+    for article_id in ids:
+        threading.Thread(target=_translate_one, args=(article_id,), daemon=True).start()
+    return {"ok": True, "count": len(ids)}
 
 
 @app.get("/a/{article_id}")

@@ -3,71 +3,63 @@
 <main class="shelf">
   <header class="shelf-head">
     <h1>Đọc gì hôm nay</h1>
-    <p>Bài từ các engineering blog đã được chấm điểm và dịch sẵn. Mới nhất ở trên.</p>
-    <form method="post" action="/admin/run" class="run-form">
-      <button type="submit" {% if running %}disabled{% endif %}>
-        {% if running %}Đang lấy bài…{% else %}Lấy bài mới ngay{% endif %}
-      </button>
-      {% if run == 'started' %}<span>Đã bắt đầu. Tải lại trang sau vài phút để xem bài mới.</span>
-      {% elif run == 'busy' %}<span>Đang có lượt lấy bài khác chạy.</span>{% endif %}
-    </form>
-
-    <form method="post" action="/admin/translate" class="run-form">
-      <button type="submit" {% if running %}disabled{% endif %}>
-        {% if running %}Đang xử lý…{% else %}Dịch bài đang chờ{% endif %}
-      </button>
-      {% if run == 'translate_started' %}<span>Đã bắt đầu dịch. Tải lại trang sau vài phút.</span>
-      {% elif run == 'busy' %}<span>Đang có lượt chạy khác.</span>{% endif %}
-    </form>
-
-    {% if stats %}
-    <p class="run-stats">
-      Lần chạy gần nhất ({{ stats.finished_at | datetime }}):
-      {{ stats.fetched_new }} bài mới,
-      {{ stats.member_only }} bỏ qua (member-only),
-      {{ stats.scored }} đạt điểm,
-      {{ stats.low_score }} điểm thấp,
-      {{ stats.translated }} đã dịch
-      {%- if stats.failed %}, {{ stats.failed }} lỗi{% endif %}.
-    </p>
+    <p>Bài bạn tự đưa vào qua extension, dịch sẵn sang tiếng Việt. Mới nhất ở trên.</p>
+    {% if articles %}
+    <button type="button" id="batch-btn" class="batch-btn">Dịch hàng loạt…</button>
     {% endif %}
   </header>
 
   {% if not articles %}
   <section class="empty">
-    <p>Chưa có bài nào. Bấm "Lấy bài mới ngay", hoặc chạy <code>python pipeline.py</code> nếu đang ở máy local.</p>
+    <p>Chưa có bài nào. Dùng extension trong <code>extension/</code> để đưa bài bạn
+      đang đọc vào app.</p>
   </section>
   {% endif %}
 
   <ol class="entries">
   {% for a in articles %}
-    <li class="entry">
-      <span class="score" title="Điểm đáng đọc">{{ a.score }}</span>
+    <li class="entry" data-id="{{ a.id }}">
+      <input type="checkbox" class="pick" value="{{ a.id }}"
+        {% if a.status == 'translated' %}disabled{% endif %}>
       <div>
         <h2>
           {% if a.status == 'translated' %}
             <a href="/a/{{ a.id }}">{{ a.title_vi or a.title }}</a>
           {% else %}
-            <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title_vi or a.title }}</a>
+            <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
           {% endif %}
         </h2>
-        <p class="orig">{{ a.title }}</p>
-        {% if a.tldr_vi %}<p class="tldr">{{ a.tldr_vi }}</p>{% endif %}
+        {% if a.status == 'translated' %}<p class="orig">{{ a.title }}</p>{% endif %}
         <p class="meta">
           <span>{{ a.author }}</span>
-          <span>{{ a.published | date }}</span>
-          {% if a.partial %}<span class="tag">Chỉ có tóm tắt, mở bài gốc để đọc</span>
-          {% elif a.status == 'scored' %}<span class="tag">Chờ dịch</span>{% endif %}
+          <span>{{ a.created_at | date }}</span>
+          {% if a.id in translating_ids %}<span class="tag">Đang dịch…</span>
+          {% elif a.status == 'translated' %}<span class="tag tag-done">Đã dịch</span>
+          {% elif a.status == 'failed' %}<span class="tag tag-err">Dịch lỗi</span>
+          {% endif %}
         </p>
       </div>
+      {% if a.status != 'translated' and a.id not in translating_ids %}
+      <button type="button" class="translate-one" data-id="{{ a.id }}">Dịch</button>
+      {% endif %}
     </li>
   {% endfor %}
   </ol>
 </main>
-{% if run %}
-<script>
-  // Bỏ ?run=... khỏi URL sau khi hiện thông báo, giữ lại lịch sử sạch
-  history.replaceState(null, "", location.pathname);
-</script>
-{% endif %}
+
+<div id="batch-modal" class="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-bar">
+      <span>Chọn bài để dịch hàng loạt</span>
+      <button type="button" id="batch-close" class="panel-close" aria-label="Đóng">×</button>
+    </div>
+    <label class="modal-all">
+      <input type="checkbox" id="select-all"> Chọn tất cả bài chưa dịch
+    </label>
+    <ul id="batch-list" class="batch-list"></ul>
+    <button type="button" id="batch-submit" class="batch-submit">Dịch các bài đã chọn</button>
+  </div>
+</div>
+
+<script src="/static/translate.js"></script>
 {% endblock %}

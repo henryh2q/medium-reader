@@ -1,4 +1,4 @@
-"""Các lời gọi Claude: chấm điểm, dịch, giải thích thuật ngữ."""
+"""Các lời gọi Claude: dịch, giải thích thuật ngữ."""
 import json
 import re
 
@@ -32,29 +32,7 @@ def _parse_json(text: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
-# ---------- 1. Chấm điểm ----------
-
-SCORE_SYSTEM = f"""You are a strict technical editor picking articles worth reading for a
-senior backend developer whose interests are: {config.INTERESTS}.
-
-Score 1-10 how worth reading the article is. Reward: technical depth, real production
-experience, concrete numbers or code, a genuinely new idea. Penalise hard: SEO listicles,
-generic "complete guide to X in 2026" pieces, hype, marketing, rehashed news, clickbait.
-Relevance to the interests matters, but a deep article outside them can still score well.
-
-Return ONLY JSON:
-{{"score": <int 1-10>, "reason": "<1 sentence, Vietnamese>",
-  "title_vi": "<natural Vietnamese title>", "tldr_vi": "<2-3 sentences, Vietnamese>"}}"""
-
-
-def score_article(title: str, content: str) -> dict:
-    user = f"Title: {title}\n\nContent (may be truncated):\n{content[:3000]}"
-    data = _parse_json(_call(config.MODEL_SCORE, SCORE_SYSTEM, user, 600))
-    data["score"] = int(data["score"])
-    return data
-
-
-# ---------- 2. Dịch ----------
+# ---------- 1. Dịch ----------
 
 TRANSLATE_SYSTEM = """Translate the Markdown the user sends from English to Vietnamese,
 for a Vietnamese software engineer.
@@ -100,7 +78,7 @@ def translate_markdown(md: str) -> str:
     return "\n\n".join(parts)
 
 
-# ---------- 3. Giải thích thuật ngữ ----------
+# ---------- 2. Giải thích thuật ngữ ----------
 
 EXPLAIN_SYSTEM = """You explain technical terms to a Vietnamese backend developer
 (PHP/Laravel, Python/Django) who is reading an English tech article and wants to truly
