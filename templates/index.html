@@ -40,7 +40,7 @@
           {% endif %}
         </h2>
         <p class="meta">
-          <span>{{ a.author }}</span>
+          {% if a.author %}<span>{{ a.author }}</span>{% endif %}
           <span>{{ a.created_at | date }}</span>
           {% if a.id in translating_ids %}<span class="tag">Đang dịch…</span>
           {% elif a.status == 'failed' %}<span class="tag tag-err">Dịch lỗi</span>

@@ -70,7 +70,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   border-top: 1px solid var(--rule);
 }
 .entry[data-status="translating"] { opacity: 0.5; pointer-events: none; }
-.entry h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; display: flex; align-items: baseline; gap: 0.5rem; }
+.entry h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; }
 .entry h2 a { color: var(--ink); text-decoration: none; }
 .entry h2 a:hover { color: var(--accent); }
 .desc {
@@ -82,7 +82,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .tag-err { background: #f6c6c0; }
 .tag-done { background: #cdeccb; }
 .translate-one {
-  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center;
+  vertical-align: middle; margin-left: 0.5rem;
   color: var(--accent); background: none;
   border: 1px solid var(--rule); border-radius: 999px; width: 1.75rem; height: 1.75rem;
   cursor: pointer; padding: 0;
@@ -92,7 +93,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .translate-icon { display: block; }
 .batch-fab .translate-icon { width: 20px; height: 20px; }
 .spinner {
-  flex-shrink: 0; width: 1.1rem; height: 1.1rem; border-radius: 999px;
+  display: inline-block; vertical-align: middle; margin-left: 0.5rem;
+  width: 1.1rem; height: 1.1rem; border-radius: 999px;
   border: 2px solid var(--rule); border-top-color: var(--accent);
   animation: spin 0.7s linear infinite;
 }
