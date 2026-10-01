@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 import markdown
 import nh3
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -55,7 +55,9 @@ def _auth_ok(header: str) -> bool:
 async def basic_auth(request: Request, call_next):
     # /healthz: health check. /admin/import: gọi từ extension trình duyệt (không phải
     # form trên chính app), tự xác thực riêng bằng X-Import-Token thay vì Basic Auth.
-    if request.url.path in ("/healthz", "/admin/import"):
+    # /favicon.ico: một số trình duyệt (Safari) tự fetch path này mà không gửi kèm
+    # Authorization header, nên để sau Basic Auth thì icon sẽ không bao giờ hiện được.
+    if request.url.path in ("/healthz", "/admin/import", "/favicon.ico"):
         return await call_next(request)
     if not (config.AUTH_USER and config.AUTH_PASS):
         if config.ON_RAILWAY:  # fail closed: không lộ app + API key ra internet
@@ -74,6 +76,11 @@ async def basic_auth(request: Request, call_next):
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(config.BASE_DIR / "static" / "favicon.ico")
 
 
 class ImportIn(BaseModel):

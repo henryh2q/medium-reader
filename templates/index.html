@@ -21,7 +21,7 @@
       <div>
         <h2>
           {% if a.status == 'translated' %}
-            <a href="/a/{{ a.id }}">{{ a.title_vi }}</a>
+            <a href="/a/{{ a.id }}">{{ a.title_vi or a.title }}</a>
           {% else %}
             <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
             {% if a.id not in translating_ids %}
