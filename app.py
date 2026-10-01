@@ -51,13 +51,17 @@ def _auth_ok(header: str) -> bool:
             and secrets.compare_digest(pw.encode(), config.AUTH_PASS.encode()))
 
 
+PUBLIC_PATHS = ("/healthz", "/admin/import", "/favicon.ico")
+# Icon/manifest trình duyệt tự fetch khi Add to Home Screen hoặc hiện favicon, không
+# kèm Authorization header — phải công khai, nếu không iOS/Android chỉ fallback về
+# icon chữ cái đầu mặc định thay vì logo thật.
+PUBLIC_STATIC_PREFIXES = ("/static/favicon/", "/static/manifest.json", "/static/logo.svg")
+
+
 @app.middleware("http")
 async def basic_auth(request: Request, call_next):
-    # /healthz: health check. /admin/import: gọi từ extension trình duyệt (không phải
-    # form trên chính app), tự xác thực riêng bằng X-Import-Token thay vì Basic Auth.
-    # /favicon.ico: một số trình duyệt (Safari) tự fetch path này mà không gửi kèm
-    # Authorization header, nên để sau Basic Auth thì icon sẽ không bao giờ hiện được.
-    if request.url.path in ("/healthz", "/admin/import", "/favicon.ico"):
+    path = request.url.path
+    if path in PUBLIC_PATHS or path.startswith(PUBLIC_STATIC_PREFIXES):
         return await call_next(request)
     if not (config.AUTH_USER and config.AUTH_PASS):
         if config.ON_RAILWAY:  # fail closed: không lộ app + API key ra internet
