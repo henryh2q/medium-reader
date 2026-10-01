@@ -10,8 +10,18 @@
       nhỏ và một token truy cập. Token được admin duyệt thủ công để tránh spam.</p>
   </header>
 
+  <section class="form-block">
+    <h2>Bước 1 — Cài extension</h2>
+    <ol class="submit-instructions">
+      <li>Tải extension: <a href="https://github.com/henryh2q/medium-reader/tree/main/extension" target="_blank" rel="noopener">mở thư mục <code>extension/</code> trên GitHub</a>, bấm "Code" → "Download ZIP", giải nén.</li>
+      <li>Chrome/Edge → gõ <code>chrome://extensions</code> → bật <b>Developer mode</b> (góc trên phải).</li>
+      <li>Bấm <b>Load unpacked</b> → chọn thư mục <code>extension/</code> vừa giải nén.</li>
+      <li>Mở bài viết bạn muốn gửi → bấm icon extension → dán token (xin ở bước 2 dưới đây) → gửi.</li>
+    </ol>
+  </section>
+
   <section id="step-request" class="form-block">
-    <h2>Bước 1 — Yêu cầu token</h2>
+    <h2>Bước 2 — Yêu cầu token</h2>
     <label for="note">Ghi chú (tuỳ chọn — email/liên hệ để admin biết là ai)</label>
     <input id="note" maxlength="300" placeholder="vd. email của bạn">
     <button type="button" id="request-btn">Yêu cầu token</button>
@@ -27,14 +37,8 @@
 
   <section id="step-approved" class="form-block" hidden>
     <h2>✅ Đã được duyệt!</h2>
-    <p class="hint">Token của bạn:</p>
+    <p class="hint">Token của bạn — dán vào extension đã cài ở Bước 1:</p>
     <p><code id="token-value" class="token-box"></code></p>
-    <ol class="submit-instructions">
-      <li>Tải extension: <a href="https://github.com/henryh2q/medium-reader/tree/main/extension" target="_blank" rel="noopener">mở thư mục <code>extension/</code> trên GitHub</a>, bấm "Code" → "Download ZIP", giải nén.</li>
-      <li>Chrome/Edge → gõ <code>chrome://extensions</code> → bật <b>Developer mode</b> (góc trên phải).</li>
-      <li>Bấm <b>Load unpacked</b> → chọn thư mục <code>extension/</code> vừa giải nén.</li>
-      <li>Mở bài viết bạn muốn gửi → bấm icon extension → dán token ở trên → gửi.</li>
-    </ol>
   </section>
 </main>
 

@@ -7,6 +7,15 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
 
+  // Icon kiểu Google Translate (chữ 文 + A), khớp với templates/_translate_icon.html —
+  // sửa cả 2 nơi nếu đổi icon, vì JS không include được partial Jinja khi render động.
+  const TRANSLATE_ICON_SVG = `<svg class="translate-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M5 4h5M7.5 4v2.2c0 2.6-1.6 5-4 6.1M4 9.5c1.6 1.4 3.6 2.3 5.8 2.6M11 4.3c-.6 3.7-3 6.8-6.3 8.5"
+          stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M14.5 21l4-9 4 9M15.8 18h5.4"
+          stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+
   // ---------- Theo dõi tiến độ các bài đang dịch ----------
   const progressBar = document.getElementById('progress-bar');
   const trackingIds = new Set(
@@ -37,10 +46,10 @@
     } else if (info.status === 'failed') {
       const h2 = entry.querySelector('h2');
       h2.insertAdjacentHTML('beforeend',
-        `<button type="button" class="translate-one" data-id="${info.id}" title="Dịch bài này" aria-label="Dịch bài này">⇄</button>`);
+        `<button type="button" class="translate-one" data-id="${info.id}" title="Dịch bài này" aria-label="Dịch bài này">${TRANSLATE_ICON_SVG}</button>`);
       bindTranslateButton(h2.querySelector('.translate-one'));
       entry.querySelector('.meta').insertAdjacentHTML('beforeend', '<span class="tag tag-err">Dịch lỗi</span>');
-      alert(`Dịch lỗi: "${entry.dataset.title}". Bấm icon ⇄ để thử lại.`);
+      alert(`Dịch lỗi: "${entry.dataset.title}". Bấm icon dịch để thử lại.`);
     }
   };
 
