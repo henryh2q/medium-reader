@@ -85,7 +85,15 @@ def fmt_date(iso: str | None) -> str:
     return f"{iso[8:10]}/{iso[5:7]}/{iso[:4]}" if iso else ""
 
 
+def fmt_datetime(iso: str | None) -> str:
+    if not iso:
+        return ""
+    date, _, time = iso.partition(" ")
+    return f"{date[8:10]}/{date[5:7]}/{date[:4]} {time[:5]}"
+
+
 templates.env.filters["date"] = fmt_date
+templates.env.filters["datetime"] = fmt_datetime
 
 
 @app.get("/")
@@ -96,10 +104,12 @@ def index(request: Request):
                FROM articles WHERE status IN ('translated', 'scored')
                ORDER BY COALESCE(published, created_at) DESC LIMIT 100"""
         ).fetchall()
+        stats = c.execute("SELECT * FROM run_stats WHERE id=1").fetchone()
     return templates.TemplateResponse(request, "index.html", {
         "articles": rows,
         "running": scheduler.is_running(),
         "run": request.query_params.get("run"),
+        "stats": stats,
     })
 
 

@@ -1,7 +1,7 @@
-# Đọc gì hôm nay: Medium reader tiếng Việt (MVP)
+# Đọc gì hôm nay: Engineering blog reader tiếng Việt (MVP)
 
-Lấy bài Medium qua RSS, dùng Claude chấm điểm "đáng đọc", dịch bài tốt nhất sang
-tiếng Việt, và giải thích thuật ngữ khi bôi đen text.
+Lấy bài từ các engineering blog qua RSS, dùng Claude chấm điểm "đáng đọc", dịch bài
+tốt nhất sang tiếng Việt, và giải thích thuật ngữ khi bôi đen text.
 
 ## Cài đặt
 
@@ -39,14 +39,15 @@ Chạy pipeline tự động mỗi sáng 7h (crontab):
 
 ## Tinh chỉnh
 
-- **Feed:** sửa `FEEDS` trong `config.py`, dùng `/feed/tag/<tag>`, `/feed/<publication>` hoặc `/feed/@<user>`.
+- **Feed:** sửa `FEEDS` trong `config.py`, điền RSS của các engineering blog bạn muốn theo dõi.
 - **Gu đọc:** sửa `INTERESTS`, tăng hoặc giảm `SCORE_THRESHOLD` (mặc định 7).
 - **Chi phí:** chấm điểm dùng Haiku (chỉ gửi 3.000 ký tự đầu). Dịch và giải thích dùng Sonnet.
   Giải thích được cache theo thuật ngữ + bài, nên tra lại không tốn thêm token.
 
 ## Giới hạn đã biết
 
-- Bài member-only: RSS chỉ có đoạn đầu, nên app chỉ hiển thị tóm tắt kèm link bài gốc.
+- Bài member-only: RSS chỉ có đoạn đầu, nên bị bỏ qua trước bước chấm điểm (không tốn
+  token) và app chỉ hiển thị tóm tắt kèm link bài gốc nếu đã có điểm từ trước.
 - Dùng cho cá nhân. Không public bản dịch vì nội dung thuộc bản quyền tác giả.
 - Bôi đen cắt ngang nhiều định dạng (vd. nửa chữ đậm) vẫn giải thích được, chỉ là không tô vệt dạ quang.
 

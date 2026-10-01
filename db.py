@@ -31,6 +31,18 @@ CREATE TABLE IF NOT EXISTS explanations (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (term_key, article_id)
 );
+
+-- Thống kê lần chạy pipeline gần nhất (luôn chỉ có 1 dòng, id=1)
+CREATE TABLE IF NOT EXISTS run_stats (
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+    finished_at     TEXT,
+    fetched_new     INTEGER DEFAULT 0,
+    member_only     INTEGER DEFAULT 0,
+    scored          INTEGER DEFAULT 0,
+    low_score       INTEGER DEFAULT 0,
+    translated      INTEGER DEFAULT 0,
+    failed          INTEGER DEFAULT 0
+);
 """
 
 

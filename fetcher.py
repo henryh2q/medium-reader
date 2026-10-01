@@ -1,4 +1,4 @@
-"""Đọc RSS Medium và chuyển nội dung HTML sang Markdown."""
+"""Đọc RSS (engineering blog) và chuyển nội dung HTML sang Markdown."""
 import re
 from datetime import datetime, timezone
 

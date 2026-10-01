@@ -3,7 +3,7 @@
 <main class="shelf">
   <header class="shelf-head">
     <h1>Đọc gì hôm nay</h1>
-    <p>Bài Medium đã được chấm điểm và dịch sẵn. Mới nhất ở trên.</p>
+    <p>Bài từ các engineering blog đã được chấm điểm và dịch sẵn. Mới nhất ở trên.</p>
     <form method="post" action="/admin/run" class="run-form">
       <button type="submit" {% if running %}disabled{% endif %}>
         {% if running %}Đang lấy bài…{% else %}Lấy bài mới ngay{% endif %}
@@ -11,6 +11,18 @@
       {% if run == 'started' %}<span>Đã bắt đầu. Tải lại trang sau vài phút để xem bài mới.</span>
       {% elif run == 'busy' %}<span>Đang có lượt lấy bài khác chạy.</span>{% endif %}
     </form>
+
+    {% if stats %}
+    <p class="run-stats">
+      Lần chạy gần nhất ({{ stats.finished_at | datetime }}):
+      {{ stats.fetched_new }} bài mới,
+      {{ stats.member_only }} bỏ qua (member-only),
+      {{ stats.scored }} đạt điểm,
+      {{ stats.low_score }} điểm thấp,
+      {{ stats.translated }} đã dịch
+      {%- if stats.failed %}, {{ stats.failed }} lỗi{% endif %}.
+    </p>
+    {% endif %}
   </header>
 
   {% if not articles %}
@@ -44,4 +56,10 @@
   {% endfor %}
   </ol>
 </main>
+{% if run %}
+<script>
+  // Bỏ ?run=... khỏi URL sau khi hiện thông báo, giữ lại lịch sử sạch
+  history.replaceState(null, "", location.pathname);
+</script>
+{% endif %}
 {% endblock %}

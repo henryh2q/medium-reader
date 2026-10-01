@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("pipeline")
 
 
-def fetch() -> None:
+def fetch() -> dict:
     new = 0
     with db.conn() as c:
         for feed in config.FEEDS:
@@ -37,16 +37,24 @@ def fetch() -> None:
                 new += cur.rowcount
             log.info("%s: %d bài", feed, len(items))
     log.info("Bài mới: %d", new)
+    return {"fetched_new": new}
 
 
-def score() -> None:
+def score() -> dict:
     with db.conn() as c:
-        rows = c.execute("SELECT id, title, content_en FROM articles WHERE status='new'").fetchall()
+        cur = c.execute("UPDATE articles SET status='skipped' WHERE status='new' AND partial=1")
+        member_only = cur.rowcount
+        rows = c.execute(
+            "SELECT id, title, content_en FROM articles WHERE status='new'"
+        ).fetchall()
     log.info("Cần chấm: %d", len(rows))
+    scored = low_score = failed = 0
     for r in rows:
         try:
             s = llm.score_article(r["title"], r["content_en"])
             status = "scored" if s["score"] >= config.SCORE_THRESHOLD else "skipped"
+            scored += status == "scored"
+            low_score += status == "skipped"
             with db.conn() as c:
                 c.execute(
                     """UPDATE articles SET status=?, score=?, score_reason=?, title_vi=?, tldr_vi=?
@@ -56,11 +64,13 @@ def score() -> None:
             log.info("[%d/10] %s", s["score"], r["title"])
         except Exception as e:
             log.warning("Chấm lỗi #%d: %s", r["id"], e)
+            failed += 1
             with db.conn() as c:
                 c.execute("UPDATE articles SET status='failed' WHERE id=?", (r["id"],))
+    return {"member_only": member_only, "scored": scored, "low_score": low_score, "failed": failed}
 
 
-def translate() -> None:
+def translate() -> dict:
     with db.conn() as c:
         rows = c.execute(
             """SELECT id, title, content_en FROM articles
@@ -68,6 +78,7 @@ def translate() -> None:
                ORDER BY score DESC, published DESC LIMIT ?""",
             (config.MAX_TRANSLATE_PER_RUN,),
         ).fetchall()
+    translated = failed = 0
     for r in rows:
         try:
             vi = llm.translate_markdown(r["content_en"])
@@ -75,17 +86,42 @@ def translate() -> None:
                 c.execute("UPDATE articles SET status='translated', content_vi=? WHERE id=?",
                           (vi, r["id"]))
             log.info("Đã dịch: %s", r["title"])
+            translated += 1
         except Exception as e:
             log.warning("Dịch lỗi #%d: %s", r["id"], e)
+            failed += 1
+    return {"translated": translated, "failed": failed}
 
 
 STEPS = {"fetch": fetch, "score": score, "translate": translate}
 
 
+def save_stats(stats: dict) -> None:
+    with db.conn() as c:
+        c.execute(
+            """INSERT INTO run_stats (id, finished_at, fetched_new, member_only, scored, low_score, translated, failed)
+               VALUES (1, CURRENT_TIMESTAMP, :fetched_new, :member_only, :scored, :low_score, :translated, :failed)
+               ON CONFLICT(id) DO UPDATE SET
+                 finished_at=CURRENT_TIMESTAMP, fetched_new=:fetched_new, member_only=:member_only,
+                 scored=:scored, low_score=:low_score, translated=:translated, failed=:failed""",
+            {
+                "fetched_new": stats.get("fetched_new", 0),
+                "member_only": stats.get("member_only", 0),
+                "scored": stats.get("scored", 0),
+                "low_score": stats.get("low_score", 0),
+                "translated": stats.get("translated", 0),
+                "failed": stats.get("failed", 0),
+            },
+        )
+
+
 def run_all() -> None:
     db.init_db()
+    stats = {}
     for step in STEPS.values():
-        step()
+        for k, v in step().items():
+            stats[k] = stats.get(k, 0) + v
+    save_stats(stats)
 
 
 if __name__ == "__main__":

@@ -7,15 +7,15 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
-# RSS của Medium: /feed/tag/<tag>, /feed/<publication>, /feed/@<username>
+# RSS của các engineering blog
 FEEDS = [
-    "https://medium.com/feed/tag/software-engineering",
-    "https://medium.com/feed/tag/software-architecture",
-    "https://medium.com/feed/tag/system-design",
-    "https://medium.com/feed/tag/laravel",
-    "https://medium.com/feed/tag/python",
-    "https://medium.com/feed/tag/ai-agents",
-    "https://medium.com/feed/tag/llm",
+    "https://netflixtechblog.com/feed",
+    "https://engineering.atspotify.com/feed/",
+    "https://stackoverflow.blog/engineering/feed/",
+    "https://github.blog/engineering/feed/",
+    "https://engineering.fb.com/feed/",
+    "https://aws.amazon.com/blogs/architecture/feed/",
+    "https://martinfowler.com/feed.atom",
 ]
 
 # Mô tả mối quan tâm — model dùng để chấm điểm độ liên quan
