@@ -1,21 +1,24 @@
 """Web đọc bài:  uvicorn app:app --reload"""
+import base64
 import json
 import logging
 import re
 import secrets
 import threading
+import uuid
 from contextlib import asynccontextmanager
 
 import markdown
 import nh3
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 import config
 import db
+import emailer
 import fetcher
 import llm
 
@@ -37,6 +40,40 @@ _translating: set[int] = set()
 _translating_lock = threading.Lock()
 
 
+# ---------- Basic Auth riêng cho /admin/* ----------
+
+def _admin_auth_ok(header: str) -> bool:
+    if not header.startswith("Basic "):
+        return False
+    try:
+        user, _, pw = base64.b64decode(header[6:]).decode("utf-8").partition(":")
+    except Exception:
+        return False
+    return (secrets.compare_digest(user.encode(), config.ADMIN_USER.encode())
+            and secrets.compare_digest(pw.encode(), config.ADMIN_PASS.encode()))
+
+
+# Các route /admin/* công khai, không qua Basic Auth admin:
+# - /admin/import: xác thực riêng bằng X-Import-Token (extension của bất kỳ ai được
+#   cấp token qua /submit, không phải chỉ admin).
+# - /admin/translate*: nút "Dịch" trên trang chủ công khai gọi, ai xem trang cũng
+#   bấm được — không phải thao tác quản trị dù tiền tố path là /admin/.
+ADMIN_PUBLIC_PREFIXES = ("/admin/import", "/admin/translate")
+
+
+@app.middleware("http")
+async def admin_auth(request: Request, call_next):
+    path = request.url.path
+    if not path.startswith("/admin/") or path.startswith(ADMIN_PUBLIC_PREFIXES):
+        return await call_next(request)
+    if not (config.ADMIN_USER and config.ADMIN_PASS):
+        return Response("Chưa đặt ADMIN_USER / ADMIN_PASS.", status_code=503)
+    if _admin_auth_ok(request.headers.get("authorization", "")):
+        return await call_next(request)
+    return Response("Cần đăng nhập.", status_code=401,
+                    headers={"WWW-Authenticate": 'Basic realm="admin", charset="UTF-8"'})
+
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
@@ -47,6 +84,40 @@ def favicon():
     return FileResponse(config.BASE_DIR / "static" / "favicon.ico")
 
 
+@app.get("/robots.txt", include_in_schema=False)
+def robots_txt(request: Request):
+    base = f"{request.url.scheme}://{request.url.netloc}"
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /submit\n"
+        "Disallow: /admin/\n"
+        f"Sitemap: {base}/sitemap.xml\n"
+    )
+    return Response(body, media_type="text/plain")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml(request: Request):
+    base = f"{request.url.scheme}://{request.url.netloc}"
+    with db.conn() as c:
+        rows = c.execute(
+            "SELECT slug, created_at FROM articles WHERE status='translated' ORDER BY created_at DESC"
+        ).fetchall()
+    urls = [f"<url><loc>{base}/</loc></url>"]
+    for r in rows:
+        urls.append(
+            f"<url><loc>{base}/bai-viet/{r['slug']}</loc>"
+            f"<lastmod>{r['created_at'][:10]}</lastmod></url>"
+        )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        + "".join(urls) + "</urlset>"
+    )
+    return Response(xml, media_type="application/xml")
+
+
 class ImportIn(BaseModel):
     url: str = Field(min_length=1, max_length=2000)
     title: str = Field(min_length=1, max_length=500)
@@ -55,14 +126,26 @@ class ImportIn(BaseModel):
     tags: list[str] = Field(default_factory=list, max_length=10)
 
 
+def _valid_import_token(token: str) -> bool:
+    """Chấp nhận token gốc của chủ site (IMPORT_TOKEN) hoặc bất kỳ token nào đã
+    được admin duyệt qua /admin/requests (xem token_requests)."""
+    if not token:
+        return False
+    if config.IMPORT_TOKEN and secrets.compare_digest(token.encode(), config.IMPORT_TOKEN.encode()):
+        return True
+    with db.conn() as c:
+        row = c.execute(
+            "SELECT 1 FROM token_requests WHERE status='approved' AND token=?", (token,)
+        ).fetchone()
+    return row is not None
+
+
 @app.post("/admin/import")
 def admin_import(body: ImportIn, request: Request):
     # Đưa bài bạn đang đọc trên trình duyệt (vd. bài Medium member-only, đã mở bằng
     # tài khoản trả phí của bạn) vào app qua extension. Không tự động truy cập Medium.
-    if not config.IMPORT_TOKEN:
-        raise HTTPException(503, "Chưa đặt IMPORT_TOKEN trên server.")
     token = request.headers.get("x-import-token", "")
-    if not secrets.compare_digest(token.encode(), config.IMPORT_TOKEN.encode()):
+    if not _valid_import_token(token):
         raise HTTPException(401, "Sai import token.")
 
     md = fetcher.html_to_markdown_full(body.html)
@@ -82,17 +165,91 @@ def admin_import(body: ImportIn, request: Request):
     except Exception:
         log.exception("Tóm tắt lỗi khi import %s", url)
     with db.conn() as c:
-        cur = c.execute(
-            """INSERT OR IGNORE INTO articles (url, title, author, content_en, summary_en, word_count, status)
-               VALUES (?, ?, ?, ?, ?, ?, 'new')""",
-            (url, title, body.author.strip(), md, summary_en, words),
-        )
-        if cur.rowcount == 0:
+        if c.execute("SELECT 1 FROM articles WHERE url=?", (url,)).fetchone():
             return {"ok": False, "reason": "Bài đã có trong hệ thống."}
+        slug = db.make_unique_slug(c, title)
+        cur = c.execute(
+            """INSERT INTO articles (url, slug, title, author, content_en, summary_en, word_count, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'new')""",
+            (url, slug, title, body.author.strip(), md, summary_en, words),
+        )
         article_id = cur.lastrowid
         if tags:
             db.set_article_tags(c, article_id, tags)
     return {"ok": True, "words": words}
+
+
+# ---------- Yêu cầu cấp token (/submit) ----------
+
+@app.get("/submit")
+def submit_page(request: Request):
+    return templates.TemplateResponse(request, "submit.html", {})
+
+
+class TokenRequestIn(BaseModel):
+    note: str = Field(default="", max_length=300)
+
+
+@app.post("/api/token-requests")
+def create_token_request(body: TokenRequestIn):
+    request_id = str(uuid.uuid4())
+    with db.conn() as c:
+        c.execute(
+            "INSERT INTO token_requests (request_id, note) VALUES (?, ?)",
+            (request_id, body.note.strip()),
+        )
+    emailer.send_token_request_notice(request_id, body.note.strip())
+    return {"request_id": request_id}
+
+
+@app.get("/api/token-requests/{request_id}")
+def check_token_request(request_id: str):
+    with db.conn() as c:
+        row = c.execute(
+            "SELECT status, token FROM token_requests WHERE request_id=?", (request_id,)
+        ).fetchone()
+    if not row:
+        raise HTTPException(404, "Không tìm thấy yêu cầu")
+    return {"status": row["status"], "token": row["token"] if row["status"] == "approved" else None}
+
+
+@app.get("/admin/requests")
+def admin_requests_page(request: Request):
+    with db.conn() as c:
+        rows = c.execute(
+            "SELECT * FROM token_requests ORDER BY created_at DESC LIMIT 200"
+        ).fetchall()
+    return templates.TemplateResponse(request, "admin_requests.html", {"requests": rows})
+
+
+@app.post("/admin/requests/{request_id}/approve")
+def admin_approve_request(request_id: str):
+    with db.conn() as c:
+        row = c.execute("SELECT status FROM token_requests WHERE request_id=?", (request_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "Không tìm thấy yêu cầu")
+        token = secrets.token_urlsafe(24)
+        c.execute(
+            "UPDATE token_requests SET status='approved', token=? WHERE request_id=?",
+            (token, request_id),
+        )
+    return {"ok": True, "token": token}
+
+
+# ---------- Báo cáo sự cố / đóng góp ----------
+
+class FeedbackIn(BaseModel):
+    kind: str = Field(pattern="^(bug|idea)$")
+    message: str = Field(min_length=1, max_length=2000)
+    contact: str = Field(default="", max_length=200)
+
+
+@app.post("/api/feedback")
+def submit_feedback(body: FeedbackIn):
+    sent = emailer.send_feedback_notice(body.kind, body.message.strip(), body.contact.strip())
+    if not sent:
+        raise HTTPException(503, "Chưa cấu hình gửi email trên server.")
+    return {"ok": True}
 
 
 def render_md(text: str | None) -> str:
@@ -222,7 +379,7 @@ def api_status(ids: str):
     with db.conn() as c:
         placeholders = ",".join("?" * len(id_list))
         rows = c.execute(
-            f"""SELECT id, status, title, title_vi, summary_vi
+            f"""SELECT id, slug, status, title, title_vi, summary_vi
                 FROM articles WHERE id IN ({placeholders})""",
             id_list,
         ).fetchall()
@@ -232,6 +389,7 @@ def api_status(ids: str):
         "articles": [
             {
                 "id": r["id"],
+                "slug": r["slug"],
                 "status": "translating" if r["id"] in translating_ids else r["status"],
                 "title_vi": r["title_vi"],
                 "summary_vi": r["summary_vi"],
@@ -241,10 +399,10 @@ def api_status(ids: str):
     }
 
 
-@app.get("/a/{article_id}")
-def article(request: Request, article_id: int):
+@app.get("/bai-viet/{slug}")
+def article(request: Request, slug: str):
     with db.conn() as c:
-        a = c.execute("SELECT * FROM articles WHERE id=?", (article_id,)).fetchone()
+        a = c.execute("SELECT * FROM articles WHERE slug=?", (slug,)).fetchone()
     if not a:
         raise HTTPException(404, "Không tìm thấy bài viết")
     return templates.TemplateResponse(request, "article.html", {

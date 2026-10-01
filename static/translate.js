@@ -28,7 +28,7 @@
     entry.dataset.status = info.status;
     if (info.status === 'translated') {
       entry.querySelector('h2').innerHTML =
-        `<a href="/a/${info.id}">${escapeHtml(info.title_vi || entry.dataset.title)}</a>`;
+        `<a href="/bai-viet/${info.slug}">${escapeHtml(info.title_vi || entry.dataset.title)}</a>`;
       const descEl = entry.querySelector('.desc');
       if (info.summary_vi) {
         if (descEl) descEl.textContent = info.summary_vi;

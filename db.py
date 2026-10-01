@@ -1,12 +1,16 @@
+import re
 import sqlite3
 from contextlib import contextmanager
 
 import config
 
+_SLUG_STRIP = re.compile(r"[^a-z0-9]+")
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS articles (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     url          TEXT UNIQUE NOT NULL,
+    slug         TEXT UNIQUE NOT NULL,        -- định danh trong URL /bai-viet/<slug>, cố định từ lúc tạo
     title        TEXT NOT NULL,
     author       TEXT,
     content_en   TEXT,
@@ -41,7 +45,34 @@ CREATE TABLE IF NOT EXISTS article_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(id)
 );
 CREATE INDEX IF NOT EXISTS idx_article_tags_tag ON article_tags(tag_id);
+
+-- Yêu cầu cấp IMPORT_TOKEN từ người dùng ngoài (qua trang /submit). Admin duyệt thủ
+-- công ở /admin/requests và gán token cho đúng request_id; trang /submit polling để
+-- biết khi nào có token.
+CREATE TABLE IF NOT EXISTS token_requests (
+    request_id TEXT PRIMARY KEY,              -- UUID phiên của người yêu cầu
+    status     TEXT DEFAULT 'pending',         -- pending | approved
+    token      TEXT,                           -- gán khi duyệt
+    note       TEXT,                           -- ghi chú tuỳ chọn (vd. email liên hệ)
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 """
+
+
+def slugify(title: str) -> str:
+    s = _SLUG_STRIP.sub("-", title.lower()).strip("-")
+    return s[:80].rstrip("-") or "bai-viet"
+
+
+def make_unique_slug(c, title: str) -> str:
+    """Sinh slug từ title, thêm hậu tố -2, -3... nếu đã tồn tại."""
+    base = slugify(title)
+    slug = base
+    n = 2
+    while c.execute("SELECT 1 FROM articles WHERE slug=?", (slug,)).fetchone():
+        slug = f"{base}-{n}"
+        n += 1
+    return slug
 
 
 def set_article_tags(c, article_id: int, tag_names: list[str]) -> None:

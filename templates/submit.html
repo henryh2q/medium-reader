@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Yêu cầu quyền gửi bài — Đọc gì hôm nay{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<main class="shelf">
+  <header class="shelf-head">
+    <a href="/" class="back-link">← Về trang chủ</a>
+    <h1>Gửi bài viết</h1>
+    <p>Để gửi bài viết vào "Đọc gì hôm nay", bạn cần cài một extension trình duyệt
+      nhỏ và một token truy cập. Token được admin duyệt thủ công để tránh spam.</p>
+  </header>
+
+  <section id="step-request" class="form-block">
+    <h2>Bước 1 — Yêu cầu token</h2>
+    <label for="note">Ghi chú (tuỳ chọn — email/liên hệ để admin biết là ai)</label>
+    <input id="note" maxlength="300" placeholder="vd. email của bạn">
+    <button type="button" id="request-btn">Yêu cầu token</button>
+    <p id="request-status" class="hint"></p>
+  </section>
+
+  <section id="step-waiting" class="form-block" hidden>
+    <h2>Đang chờ admin duyệt…</h2>
+    <p class="hint">Trang này sẽ tự cập nhật khi admin duyệt yêu cầu, không cần tải
+      lại. Có thể mất một lúc — bạn có thể đóng trang và quay lại sau bằng link này:</p>
+    <p><code id="waiting-link"></code></p>
+  </section>
+
+  <section id="step-approved" class="form-block" hidden>
+    <h2>✅ Đã được duyệt!</h2>
+    <p class="hint">Token của bạn:</p>
+    <p><code id="token-value" class="token-box"></code></p>
+    <ol class="submit-instructions">
+      <li>Tải extension: <a href="https://github.com/henryh2q/medium-reader/tree/main/extension" target="_blank" rel="noopener">mở thư mục <code>extension/</code> trên GitHub</a>, bấm "Code" → "Download ZIP", giải nén.</li>
+      <li>Chrome/Edge → gõ <code>chrome://extensions</code> → bật <b>Developer mode</b> (góc trên phải).</li>
+      <li>Bấm <b>Load unpacked</b> → chọn thư mục <code>extension/</code> vừa giải nén.</li>
+      <li>Mở bài viết bạn muốn gửi → bấm icon extension → dán token ở trên → gửi.</li>
+    </ol>
+  </section>
+</main>
+
+<script src="/static/submit.js"></script>
+{% endblock %}

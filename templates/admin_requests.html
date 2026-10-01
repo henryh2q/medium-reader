@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Duyệt yêu cầu token{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<main class="shelf">
+  <header class="shelf-head">
+    <h1>Yêu cầu cấp token</h1>
+  </header>
+
+  {% if not requests %}
+  <p class="hint">Chưa có yêu cầu nào.</p>
+  {% endif %}
+
+  <ol class="entries">
+  {% for r in requests %}
+    <li class="entry" data-request-id="{{ r.request_id }}">
+      <div>
+        <h2>{{ r.request_id }}</h2>
+        {% if r.note %}<p class="desc">Ghi chú: {{ r.note }}</p>{% endif %}
+        <p class="meta">
+          <span>{{ r.created_at }}</span>
+          {% if r.status == 'approved' %}
+            <span class="tag tag-done">Đã duyệt</span>
+            <code>{{ r.token }}</code>
+          {% else %}
+            <span class="tag">Đang chờ</span>
+          {% endif %}
+        </p>
+      </div>
+      {% if r.status != 'approved' %}
+      <button type="button" class="approve-btn" data-id="{{ r.request_id }}">Duyệt</button>
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ol>
+</main>
+
+<script src="/static/admin_requests.js"></script>
+{% endblock %}

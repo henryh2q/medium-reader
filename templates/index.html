@@ -33,7 +33,7 @@
             <span>{{ a.title }}</span>
             <span class="spinner" title="Đang dịch…" aria-label="Đang dịch…"></span>
           {% elif a.status == 'translated' %}
-            <a href="/a/{{ a.id }}">{{ a.title_vi or a.title }}</a>
+            <a href="/bai-viet/{{ a.slug }}">{{ a.title_vi or a.title }}</a>
           {% else %}
             <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
             <button type="button" class="translate-one" data-id="{{ a.id }}" title="Dịch bài này" aria-label="Dịch bài này">⇄</button>
@@ -60,9 +60,35 @@
   </ol>
 </main>
 
-{% if articles %}
+{# Dịch hàng loạt tạm ẩn — thay bằng "Gửi bài viết". Bật lại: xoá comment dưới +
+   bỏ `hidden` khỏi #batch-fab trong static/translate.js. #}
+<a href="/submit" id="submit-fab" class="batch-fab" title="Gửi bài viết" aria-label="Gửi bài viết">+</a>
+<button type="button" id="feedback-fab" class="feedback-fab">Báo lỗi / Góp ý</button>
+
+<div id="feedback-modal" class="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-bar">
+      <span>Báo cáo sự cố hoặc đóng góp ý tưởng</span>
+      <button type="button" id="feedback-close" class="panel-close" aria-label="Đóng">×</button>
+    </div>
+    <div class="feedback-body form-block">
+      <label for="feedback-kind">Loại</label>
+      <select id="feedback-kind">
+        <option value="bug">Báo cáo sự cố</option>
+        <option value="idea">Đóng góp ý tưởng</option>
+      </select>
+      <label for="feedback-message">Nội dung</label>
+      <textarea id="feedback-message" rows="4" maxlength="2000"></textarea>
+      <label for="feedback-contact">Liên hệ (tuỳ chọn)</label>
+      <input id="feedback-contact" maxlength="200" placeholder="email để mình phản hồi nếu cần">
+      <button type="button" id="feedback-submit">Gửi</button>
+      <p id="feedback-status" class="hint"></p>
+    </div>
+  </div>
+</div>
+
+{#
 <button type="button" id="batch-fab" class="batch-fab" title="Dịch hàng loạt" aria-label="Dịch hàng loạt">⇄</button>
-{% endif %}
 
 <div id="batch-modal" class="modal" hidden>
   <div class="modal-box">
@@ -77,6 +103,9 @@
     <button type="button" id="batch-submit" class="batch-submit">Dịch các bài đã chọn</button>
   </div>
 </div>
+#}
 
 <script src="/static/translate.js"></script>
+<script src="/static/feedback.js"></script>
+<script src="/static/fresh-on-resume.js"></script>
 {% endblock %}

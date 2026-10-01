@@ -1,5 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ a.title_vi or a.title }}{% endblock %}
+{% block title %}{{ a.title_vi or a.title }} — Đọc gì hôm nay{% endblock %}
+{% set desc = (a.summary_vi or a.summary_en or '') %}
+{% block meta_description %}{{ desc }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ a.title_vi or a.title }}{% endblock %}
+{% block og_description %}{{ desc }}{% endblock %}
 {% block body_attrs %}data-article-id="{{ a.id }}" data-lang="vi"{% endblock %}
 {% block content %}
 <main class="reader">
