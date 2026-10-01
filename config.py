@@ -36,6 +36,7 @@ MODEL_EXPLAIN = os.getenv("MODEL_EXPLAIN", "claude-sonnet-5")
 
 SCORE_THRESHOLD = int(os.getenv("SCORE_THRESHOLD", "7"))       # 1–10
 MAX_TRANSLATE_PER_RUN = int(os.getenv("MAX_TRANSLATE_PER_RUN", "3"))
+MAX_NEW_ARTICLES_PER_RUN = int(os.getenv("MAX_NEW_ARTICLES_PER_RUN", "10"))  # tổng số bài mới nhất lấy mỗi lần fetch (gộp mọi feed)
 MIN_WORDS_FULL = 400   # ít hơn số từ này => coi là bài bị cắt (member-only)
 
 # ---------- Deploy ----------

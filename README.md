@@ -47,6 +47,8 @@ Chạy pipeline tự động mỗi sáng 7h (crontab):
 - **Gu đọc:** sửa `INTERESTS`, tăng hoặc giảm `SCORE_THRESHOLD` (mặc định 7).
 - **Chi phí:** chấm điểm dùng Haiku (chỉ gửi 3.000 ký tự đầu). Dịch và giải thích dùng Sonnet.
   Giải thích được cache theo thuật ngữ + bài, nên tra lại không tốn thêm token.
+  `MAX_NEW_ARTICLES_PER_RUN` (mặc định 10) giới hạn tổng số bài mới nhất lấy mỗi lần
+  fetch (gộp mọi feed rồi chọn N bài mới nhất), tránh chấm điểm tràn lan khi có nhiều feed.
 
 ## Giới hạn đã biết
 

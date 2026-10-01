@@ -18,24 +18,31 @@ log = logging.getLogger("pipeline")
 
 
 def fetch() -> dict:
+    all_items = []
+    for feed in config.FEEDS:
+        try:
+            items = fetcher.parse_feed(feed)
+        except Exception as e:  # feed lỗi thì bỏ qua, không chặn cả pipeline
+            log.warning("Feed lỗi %s: %s", feed, e)
+            continue
+        log.info("%s: %d bài", feed, len(items))
+        all_items.extend(items)
+
+    # Gộp tất cả feed rồi chỉ lấy N bài mới nhất, tránh tốn token khi có nhiều feed
+    all_items.sort(key=lambda it: it["published"] or "", reverse=True)
+    all_items = all_items[:config.MAX_NEW_ARTICLES_PER_RUN]
+
     new = 0
     with db.conn() as c:
-        for feed in config.FEEDS:
-            try:
-                items = fetcher.parse_feed(feed)
-            except Exception as e:  # feed lỗi thì bỏ qua, không chặn cả pipeline
-                log.warning("Feed lỗi %s: %s", feed, e)
-                continue
-            for it in items:
-                cur = c.execute(
-                    """INSERT OR IGNORE INTO articles
-                       (url, title, author, published, feed, content_en, word_count, partial)
-                       VALUES (:url, :title, :author, :published, :feed, :content_en,
-                               :word_count, :partial)""",
-                    it,
-                )
-                new += cur.rowcount
-            log.info("%s: %d bài", feed, len(items))
+        for it in all_items:
+            cur = c.execute(
+                """INSERT OR IGNORE INTO articles
+                   (url, title, author, published, feed, content_en, word_count, partial)
+                   VALUES (:url, :title, :author, :published, :feed, :content_en,
+                           :word_count, :partial)""",
+                it,
+            )
+            new += cur.rowcount
     log.info("Bài mới: %d", new)
     return {"fetched_new": new}
 
