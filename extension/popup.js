@@ -47,7 +47,9 @@ sendBtn.addEventListener('click', async () => {
     setStatus('Ô "Địa chỉ app" phải là địa chỉ server "Đọc gì hôm nay" của bạn, không phải URL bài Medium.', 'err');
     return;
   }
-  chrome.storage.local.set({ appUrl, token });
+  // Chỉ giữ scheme+host+port — bỏ mọi path/query người dùng lỡ dán kèm, để
+  // request luôn gọi đúng {origin}/admin/import thay vì cộng dồn path thừa.
+  chrome.storage.local.set({ appUrl: appOrigin.origin, token });
 
   // Nếu app chạy ở domain khác railway.app/localhost (đã khai báo sẵn trong manifest),
   // xin thêm quyền truy cập domain đó ngay bây giờ.
@@ -87,7 +89,7 @@ sendBtn.addEventListener('click', async () => {
   chrome.runtime.sendMessage(
     {
       type: 'import',
-      appUrl,
+      appUrl: appOrigin.origin,
       token,
       payload: { url: tab.url, title: result.title, author: result.author, html: result.html },
     },
