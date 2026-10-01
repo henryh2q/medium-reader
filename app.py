@@ -1,12 +1,15 @@
 """Web đọc bài:  uvicorn app:app --reload"""
 import base64
+import io
 import json
 import logging
 import re
 import secrets
 import threading
 import uuid
+import zipfile
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import markdown
 import nh3
@@ -95,6 +98,25 @@ def healthz():
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     return FileResponse(config.BASE_DIR / "static" / "favicon.ico")
+
+
+@app.get("/extension.zip", include_in_schema=False)
+def extension_zip():
+    # Đóng gói thư mục extension/ ngay khi có request, để trang /submit không phải
+    # trỏ sang GitHub (repo có thể để private, không phải ai yêu cầu token cũng vào
+    # xem được mã nguồn).
+    buf = io.BytesIO()
+    ext_dir = config.BASE_DIR / "extension"
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in ext_dir.rglob("*"):
+            if path.is_file():
+                zf.write(path, arcname=str(Path("extension") / path.relative_to(ext_dir)))
+    buf.seek(0)
+    return Response(
+        buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=doc-gi-hom-nay-extension.zip"},
+    )
 
 
 @app.get("/robots.txt", include_in_schema=False)

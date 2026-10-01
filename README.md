@@ -36,6 +36,7 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | `static/fresh-on-resume.js` | Tự reload trang chủ khi app PWA quay lại foreground sau khi rời đi lâu |
 | `static/reader.js` | Bôi đen -> nút "Giải thích thuật ngữ" -> panel; chuyển VI/EN |
 | `static/logo.svg` | Logo gốc (SVG) — nguồn sinh favicon và icon extension |
+| `static/icons/google-translate*.png` | Icon nút "Dịch" — tải từ [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Google_Translate_Icon.png), là logo/nhãn hiệu của Google, dùng ở đây không có liên kết hay được Google tài trợ |
 | `extension/` | Extension Chrome/Edge: đưa bài bạn đang đọc vào app (mọi trang có `<article>`) |
 
 ## Đưa bài vào app (extension)
