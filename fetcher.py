@@ -46,3 +46,10 @@ def parse_feed(feed_url: str) -> list[dict]:
             "partial": int(truncated or words < config.MIN_WORDS_FULL),
         })
     return items
+
+
+def html_to_markdown_full(html: str) -> str:
+    """Như html_to_markdown nhưng cho HTML đầy đủ lấy từ extension (không cắt đoạn)."""
+    html = _TRACKING_IMG.sub("", html)
+    md = markdownify(html, heading_style="ATX")
+    return re.sub(r"\n{3,}", "\n\n", md).strip()

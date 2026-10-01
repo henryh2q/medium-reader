@@ -17,7 +17,14 @@ FEEDS = [
     "https://blog.langchain.dev/rss.xml",           # AI agent / workflow
     "https://www.latent.space/feed",                # AI engineering / AI SDLC
     "https://feed.infoq.com/ai-ml-data-eng/",       # AI
+    "https://medium.com/feed/tag/system-design",    # Medium: system design
+    "https://medium.com/feed/tag/ai-agents",        # Medium: AI agent
+    "https://medium.com/feed/tag/coding-interviews",  # Medium: interview
 ]
+
+# Token xác thực cho POST /admin/import (dùng bởi browser extension đưa bài member-only
+# bạn đang đọc vào app — xem extension/). Tự đặt chuỗi ngẫu nhiên dài, khác AUTH_PASS.
+IMPORT_TOKEN = os.getenv("IMPORT_TOKEN", "")
 
 # Mô tả mối quan tâm — model dùng để chấm điểm độ liên quan
 INTERESTS = os.getenv(

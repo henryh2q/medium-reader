@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 import config
 import db
+import fetcher
 import llm
 import scheduler
 
@@ -49,7 +50,9 @@ def _auth_ok(header: str) -> bool:
 
 @app.middleware("http")
 async def basic_auth(request: Request, call_next):
-    if request.url.path == "/healthz":
+    # /healthz: health check. /admin/import: gọi từ extension trình duyệt (không phải
+    # form trên chính app), tự xác thực riêng bằng X-Import-Token thay vì Basic Auth.
+    if request.url.path in ("/healthz", "/admin/import"):
         return await call_next(request)
     if not (config.AUTH_USER and config.AUTH_PASS):
         if config.ON_RAILWAY:  # fail closed: không lộ app + API key ra internet
@@ -74,6 +77,38 @@ def healthz():
 def admin_run():
     started = scheduler.run_now()
     return RedirectResponse("/?run=started" if started else "/?run=busy", status_code=303)
+
+
+class ImportIn(BaseModel):
+    url: str = Field(min_length=1, max_length=2000)
+    title: str = Field(min_length=1, max_length=500)
+    author: str = Field(default="", max_length=200)
+    html: str = Field(min_length=1, max_length=500_000)
+
+
+@app.post("/admin/import")
+def admin_import(body: ImportIn, request: Request):
+    # Đưa bài bạn đang đọc trên trình duyệt (vd. bài Medium member-only, đã mở bằng
+    # tài khoản trả phí của bạn) vào app qua extension. Không tự động truy cập Medium.
+    if not config.IMPORT_TOKEN:
+        raise HTTPException(503, "Chưa đặt IMPORT_TOKEN trên server.")
+    token = request.headers.get("x-import-token", "")
+    if not secrets.compare_digest(token.encode(), config.IMPORT_TOKEN.encode()):
+        raise HTTPException(401, "Sai import token.")
+
+    md = fetcher.html_to_markdown_full(body.html)
+    words = len(md.split())
+    url = fetcher.clean_url(body.url)
+    with db.conn() as c:
+        cur = c.execute(
+            """INSERT OR IGNORE INTO articles
+               (url, title, author, feed, content_en, word_count, partial, status)
+               VALUES (?, ?, ?, 'manual-import', ?, ?, 0, 'new')""",
+            (url, body.title.strip(), body.author.strip(), md, words),
+        )
+        if cur.rowcount == 0:
+            return {"ok": False, "reason": "Bài đã có trong hệ thống."}
+    return {"ok": True, "words": words}
 
 
 def render_md(text: str | None) -> str:

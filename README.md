@@ -38,8 +38,9 @@ Chạy pipeline tự động mỗi sáng 7h (crontab):
 | `fetcher.py` | Đọc RSS, HTML -> Markdown, phát hiện bài member-only |
 | `llm.py` | 3 prompt: chấm điểm, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
 | `pipeline.py` | `fetch` -> `score` -> `translate`, chạy từng bước được |
-| `app.py` | FastAPI: danh sách bài, trang đọc, `POST /api/explain` (có cache SQLite) |
+| `app.py` | FastAPI: danh sách bài, trang đọc, `POST /api/explain` (có cache SQLite), `POST /admin/import` |
 | `static/reader.js` | Bôi đen -> nút "Giải thích thuật ngữ" -> panel; chuyển VI/EN |
+| `extension/` | Extension Chrome/Edge: đưa bài Medium đang đọc (member-only) vào app |
 
 ## Tinh chỉnh
 
@@ -53,9 +54,26 @@ Chạy pipeline tự động mỗi sáng 7h (crontab):
 ## Giới hạn đã biết
 
 - Bài member-only: RSS chỉ có đoạn đầu, nên bị bỏ qua trước bước chấm điểm (không tốn
-  token) và app chỉ hiển thị tóm tắt kèm link bài gốc nếu đã có điểm từ trước.
+  token) và app chỉ hiển thị tóm tắt kèm link bài gốc nếu đã có điểm từ trước. Nếu bạn
+  có tài khoản Medium member, dùng extension ở `extension/` để tự đưa bài đang đọc vào app.
 - Dùng cho cá nhân. Không public bản dịch vì nội dung thuộc bản quyền tác giả.
 - Bôi đen cắt ngang nhiều định dạng (vd. nửa chữ đậm) vẫn giải thích được, chỉ là không tô vệt dạ quang.
+
+## Đưa bài Medium member-only vào app (extension)
+
+RSS Medium luôn cắt bớt bài member-only, kể cả khi bạn có tài khoản trả phí — cookie
+không đi theo RSS. Thay vì tự động crawl Medium (bị Cloudflare chặn, và vi phạm ToS khi
+làm ở quy mô tự động), extension trong `extension/` gửi **nội dung bài bạn đang tự đọc**
+trên trình duyệt (đã đăng nhập member) về app. Không có bot nào tự động truy cập Medium.
+
+1. Đặt `IMPORT_TOKEN` (chuỗi ngẫu nhiên dài, khác `BASIC_AUTH_PASS`) trong `.env` hoặc
+   biến môi trường Railway.
+2. Chrome/Edge → `chrome://extensions` → bật **Developer mode** → **Load unpacked** →
+   chọn thư mục `extension/`.
+3. Mở một bài Medium member-only, đăng nhập bằng tài khoản trả phí, đọc đến hết trang.
+4. Bấm icon extension → điền địa chỉ app và `IMPORT_TOKEN` → **Đưa bài đang mở vào app**.
+5. Bài được thêm với trạng thái `new`, sẽ được chấm điểm ở lượt `pipeline.py score` /
+   "Lấy bài mới ngay" tiếp theo như mọi bài khác.
 
 ## Deploy lên Railway
 
@@ -71,6 +89,7 @@ sẽ không đọc/ghi được file SQLite.
    ANTHROPIC_API_KEY=sk-ant-...
    BASIC_AUTH_USER=haihq
    BASIC_AUTH_PASS=<mật khẩu dài, ngẫu nhiên>
+   IMPORT_TOKEN=<chuỗi ngẫu nhiên dài khác, cho extension — bỏ qua nếu không dùng>
    DB_PATH=/data/reader.db
    PIPELINE_HOUR=7
    ```
@@ -81,5 +100,6 @@ sẽ không đọc/ghi được file SQLite.
 Bảo mật:
 - Trên Railway, nếu thiếu `BASIC_AUTH_USER`/`BASIC_AUTH_PASS` thì app trả về 503 thay vì mở toang.
 - Request POST từ domain khác bị chặn (chống CSRF).
-- `/healthz` không cần đăng nhập, dành cho health check.
+- `/healthz` và `/admin/import` không qua Basic Auth; `/admin/import` tự xác thực bằng
+  header `X-Import-Token` riêng (không đặt `IMPORT_TOKEN` thì endpoint từ chối phục vụ).
 - Nên bật **Usage limit** trong phần billing của Railway, và đặt giới hạn chi tiêu ở Anthropic Console.

@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Đọc gì hôm nay — Import",
+  "version": "1.0",
+  "description": "Gửi bài Medium bạn đang đọc (member-only) về app 'Đọc gì hôm nay'.",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": [
+    "https://medium.com/*",
+    "https://*.medium.com/*",
+    "https://*.up.railway.app/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": ["https://*/*"],
+  "action": {
+    "default_title": "Đưa bài này vào app",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Đưa bài vào app</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; width: 280px; padding: 14px; }
+    h1 { font-size: 15px; margin: 0 0 10px; }
+    label { display: block; font-size: 12px; color: #555; margin: 10px 0 4px; }
+    input { width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 13px; }
+    button { width: 100%; margin-top: 14px; padding: 8px; font-size: 13px; cursor: pointer; }
+    #status { margin-top: 10px; font-size: 12px; min-height: 16px; }
+    #status.ok { color: #1a7f37; }
+    #status.err { color: #c0392b; }
+  </style>
+</head>
+<body>
+  <h1>Đọc gì hôm nay</h1>
+
+  <label for="appUrl">Địa chỉ app</label>
+  <input id="appUrl" placeholder="https://medium-reader-production.up.railway.app">
+
+  <label for="token">Import token</label>
+  <input id="token" type="password" placeholder="Dán IMPORT_TOKEN đã đặt trên server">
+
+  <button id="send">Đưa bài đang mở vào app</button>
+  <div id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
