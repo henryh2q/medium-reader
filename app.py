@@ -40,6 +40,19 @@ _translating: set[int] = set()
 _translating_lock = threading.Lock()
 
 
+def public_base(request: Request) -> str:
+    """URL gốc công khai của app. Ưu tiên PUBLIC_URL (đặt đúng https thủ công) vì
+    Railway (và proxy nói chung) terminate TLS trước khi request tới app — request.url
+    thấy scheme là http dù người dùng thực sự vào bằng https."""
+    if config.PUBLIC_URL:
+        return config.PUBLIC_URL.rstrip("/")
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    return f"{scheme}://{request.url.netloc}"
+
+
+templates.env.globals["public_base"] = public_base
+
+
 # ---------- Basic Auth riêng cho /admin/* ----------
 
 def _admin_auth_ok(header: str) -> bool:
@@ -86,7 +99,7 @@ def favicon():
 
 @app.get("/robots.txt", include_in_schema=False)
 def robots_txt(request: Request):
-    base = f"{request.url.scheme}://{request.url.netloc}"
+    base = public_base(request)
     body = (
         "User-agent: *\n"
         "Allow: /\n"
@@ -99,7 +112,7 @@ def robots_txt(request: Request):
 
 @app.get("/sitemap.xml", include_in_schema=False)
 def sitemap_xml(request: Request):
-    base = f"{request.url.scheme}://{request.url.netloc}"
+    base = public_base(request)
     with db.conn() as c:
         rows = c.execute(
             "SELECT slug, created_at FROM articles WHERE status='translated' ORDER BY created_at DESC"

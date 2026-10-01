@@ -6,12 +6,12 @@
   <title>{% block title %}Đọc gì hôm nay{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}Kho bài kỹ thuật được chọn lọc và dịch sang tiếng Việt: system design, AI, phỏng vấn kỹ sư phần mềm.{% endblock %}">
   {% block meta_robots %}{% endblock %}
-  <link rel="canonical" href="{% block canonical %}{{ request.url.scheme }}://{{ request.url.netloc }}{{ request.url.path }}{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}{{ public_base(request) }}{{ request.url.path }}{% endblock %}">
   <meta property="og:site_name" content="Đọc gì hôm nay">
   <meta property="og:type" content="{% block og_type %}website{% endblock %}">
   <meta property="og:title" content="{% block og_title %}Đọc gì hôm nay{% endblock %}">
   <meta property="og:description" content="{% block og_description %}Kho bài kỹ thuật được chọn lọc và dịch sang tiếng Việt.{% endblock %}">
-  <meta property="og:image" content="{% block og_image %}https://{{ request.url.hostname }}/static/favicon/favicon-512.png{% endblock %}">
+  <meta property="og:image" content="{% block og_image %}{{ public_base(request) }}/static/favicon/favicon-512.png{% endblock %}">
   <meta name="twitter:card" content="summary">
   <link rel="shortcut icon" href="/favicon.ico">
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
