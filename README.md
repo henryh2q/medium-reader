@@ -26,9 +26,9 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 |---|---|
 | `config.py` | Model dùng để dịch/giải thích, token xác thực extension |
 | `fetcher.py` | HTML (từ extension) -> Markdown |
-| `llm.py` | 2 prompt: dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
+| `llm.py` | Tóm tắt, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
 | `app.py` | FastAPI: danh sách bài, trang đọc, `POST /admin/import`, dịch 1 bài/hàng loạt |
-| `static/translate.js` | Nút "Dịch" từng bài + modal "Dịch hàng loạt" (checkbox, chọn tất cả) |
+| `static/translate.js` | Icon dịch cạnh từng bài + nút nổi mở modal "Dịch hàng loạt" (chọn tất cả) |
 | `static/reader.js` | Bôi đen -> nút "Giải thích thuật ngữ" -> panel; chuyển VI/EN |
 | `static/logo.svg` | Logo gốc (SVG) — nguồn sinh favicon và icon extension |
 | `extension/` | Extension Chrome/Edge: đưa bài bạn đang đọc vào app |
@@ -45,7 +45,7 @@ truy cập trang nguồn thay bạn.
    chọn thư mục `extension/`.
 3. Mở bài viết, đọc đến hết trang (để nội dung render đầy đủ).
 4. Bấm icon extension → điền địa chỉ app và `IMPORT_TOKEN` → **Đưa bài đang mở vào app**.
-5. Bài hiện ngay trên trang chủ, trạng thái "chưa dịch".
+5. Bài hiện ngay trên trang chủ kèm tóm tắt tiếng Anh (tự sinh lúc import).
 
 **Lưu ý:** Chrome trên di động (Android/iOS) không hỗ trợ cài extension bên thứ ba —
 đây là giới hạn của Chrome mobile, không phải của extension này. Chỉ dùng được trên
@@ -53,13 +53,16 @@ Chrome/Edge desktop.
 
 ## Dịch bài
 
-- **Từng bài:** bấm nút "Dịch" cạnh bài trong danh sách.
-- **Hàng loạt:** bấm "Dịch hàng loạt…" ở đầu trang → chọn các bài cần dịch (có checkbox
+- **Từng bài:** bấm icon ⇄ cạnh tiêu đề bài trong danh sách.
+- **Hàng loạt:** bấm nút nổi ⇄ ở góc dưới phải → chọn các bài cần dịch (có checkbox
   "Chọn tất cả bài chưa dịch") → "Dịch các bài đã chọn". Mỗi bài dịch trong một thread
-  nền riêng, không chặn lẫn nhau.
+  nền riêng, không chặn lẫn nhau; bài đang dịch hoặc đã dịch tự động không xuất hiện
+  trong danh sách chọn.
 
-Mỗi bài đã dịch có ghi nguồn (link bài gốc + tác giả) ở cuối trang đọc, cùng dòng nhắc
-đây là bản dịch không chính thức — bản quyền nội dung thuộc về tác giả gốc.
+Bài đã dịch hiện tiêu đề và tóm tắt bằng tiếng Việt, không còn icon dịch (trạng thái
+"đã dịch" thể hiện qua chính tiêu đề tiếng Việt, không cần nhãn riêng). Mỗi bài đã dịch
+có ghi nguồn (link bài gốc + tác giả) ở cuối trang đọc, cùng dòng nhắc đây là bản dịch
+không chính thức — bản quyền nội dung thuộc về tác giả gốc.
 
 ## Thêm vào màn hình chính (mobile)
 

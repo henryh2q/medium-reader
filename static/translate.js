@@ -1,28 +1,17 @@
 (() => {
-  const entries = document.querySelectorAll('.entry');
-
-  const setBusy = (id, btn) => {
-    const entry = document.querySelector(`.entry[data-id="${id}"]`);
-    if (btn) btn.disabled = true;
-    const meta = entry && entry.querySelector('.meta');
-    if (meta && !meta.querySelector('.tag')) {
-      const tag = document.createElement('span');
-      tag.className = 'tag';
-      tag.textContent = 'Đang dịch…';
-      meta.appendChild(tag);
-    }
-  };
+  const entries = [...document.querySelectorAll('.entry')];
 
   // ---------- Dịch 1 bài ----------
   document.querySelectorAll('.translate-one').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
       const id = btn.dataset.id;
-      setBusy(id, btn);
+      btn.disabled = true;
       try {
         const res = await fetch(`/admin/translate/${id}`, { method: 'POST' });
         if (!res.ok) throw new Error(await res.text());
-      } catch (e) {
-        alert(`Không bắt đầu dịch được: ${e.message}`);
+      } catch (err) {
+        alert(`Không bắt đầu dịch được: ${err.message}`);
         btn.disabled = false;
         return;
       }
@@ -31,36 +20,46 @@
   });
 
   // ---------- Dịch hàng loạt ----------
-  const batchBtn = document.getElementById('batch-btn');
+  const fab = document.getElementById('batch-fab');
   const modal = document.getElementById('batch-modal');
-  if (!batchBtn || !modal) return;
+  if (!fab || !modal) return;
 
   const list = document.getElementById('batch-list');
   const selectAll = document.getElementById('select-all');
   const submitBtn = document.getElementById('batch-submit');
 
-  const pending = [...entries].filter((e) => e.querySelector('.pick:not(:disabled)'));
+  const pending = entries.filter((e) => e.dataset.status === 'new' || e.dataset.status === 'failed');
 
   const openModal = () => {
     list.innerHTML = '';
-    pending.forEach((entry) => {
-      const id = entry.dataset.id;
-      const title = entry.querySelector('h2').textContent.trim();
+    if (!pending.length) {
       const li = document.createElement('li');
-      const label = document.createElement('label');
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.value = id;
-      cb.className = 'batch-pick';
-      label.append(cb, ` ${title}`);
-      li.append(label);
+      li.textContent = 'Không có bài nào đang chờ dịch.';
       list.append(li);
-    });
+      submitBtn.hidden = true;
+      selectAll.closest('.modal-all').hidden = true;
+    } else {
+      submitBtn.hidden = false;
+      selectAll.closest('.modal-all').hidden = false;
+      pending.forEach((entry) => {
+        const id = entry.dataset.id;
+        const title = entry.dataset.title;
+        const li = document.createElement('li');
+        const label = document.createElement('label');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = id;
+        cb.className = 'batch-pick';
+        label.append(cb, ` ${title}`);
+        li.append(label);
+        list.append(li);
+      });
+    }
     selectAll.checked = false;
     modal.hidden = false;
   };
 
-  batchBtn.addEventListener('click', openModal);
+  fab.addEventListener('click', openModal);
   document.getElementById('batch-close').addEventListener('click', () => { modal.hidden = true; });
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.hidden = true; });
 

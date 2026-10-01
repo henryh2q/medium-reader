@@ -32,7 +32,20 @@ def _parse_json(text: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
-# ---------- 1. Dịch ----------
+# ---------- 1. Tóm tắt ----------
+
+SUMMARIZE_SYSTEM = """Summarize the article the user sends in 1-2 concise sentences,
+in English, for a software engineer skimming a reading list. Capture what's genuinely
+useful or new in it, not a generic restatement of the title. No preamble, no quotes
+marks around it, just the sentence(s)."""
+
+
+def summarize_article(title: str, content: str) -> str:
+    user = f"Title: {title}\n\nContent:\n{content[:3000]}"
+    return _call(config.MODEL_SUMMARIZE, SUMMARIZE_SYSTEM, user, 200).strip()
+
+
+# ---------- 2. Dịch ----------
 
 TRANSLATE_SYSTEM = """Translate the Markdown the user sends from English to Vietnamese,
 for a Vietnamese software engineer.
@@ -78,7 +91,19 @@ def translate_markdown(md: str) -> str:
     return "\n\n".join(parts)
 
 
-# ---------- 2. Giải thích thuật ngữ ----------
+TRANSLATE_TITLE_SUMMARY_SYSTEM = """Translate the article title and summary from English
+to Vietnamese, for a Vietnamese software engineer. Natural, concise Vietnamese; keep
+established technical terms in English (agent, pull request, N+1 query...).
+
+Return ONLY JSON: {"title_vi": "<translated title>", "summary_vi": "<translated summary>"}"""
+
+
+def translate_title_summary(title: str, summary: str) -> dict:
+    user = f"Title: {title}\n\nSummary: {summary}"
+    return _parse_json(_call(config.MODEL_TRANSLATE, TRANSLATE_TITLE_SUMMARY_SYSTEM, user, 500))
+
+
+# ---------- 3. Giải thích thuật ngữ ----------
 
 EXPLAIN_SYSTEM = """You explain technical terms to a Vietnamese backend developer
 (PHP/Laravel, Python/Django) who is reading an English tech article and wants to truly

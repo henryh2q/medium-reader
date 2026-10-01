@@ -39,35 +39,35 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .shelf-head h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
 .shelf-head p { color: var(--muted); margin: 0 0 1.25rem; }
 
-.batch-btn {
-  font: 600 0.875rem var(--ui); color: var(--paper); background: var(--ink);
-  border: 0; border-radius: 6px; padding: 0.5rem 0.9rem; cursor: pointer; margin-bottom: 1.5rem;
-}
-
 .entries { list-style: none; margin: 0; padding: 0; }
 .entry {
-  display: grid;
-  grid-template-columns: 1.5rem 1fr auto;
-  align-items: start;
-  gap: 1rem;
   padding: 1.25rem 0;
   border-top: 1px solid var(--rule);
 }
-.entry .pick { margin-top: 0.3rem; width: 1.1rem; height: 1.1rem; }
-.entry h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; }
+.entry h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; display: flex; align-items: baseline; gap: 0.5rem; }
 .entry h2 a { color: var(--ink); text-decoration: none; }
 .entry h2 a:hover { color: var(--accent); }
-.orig { color: var(--muted); font-size: 0.875rem; margin: 0.2rem 0 0; }
+.desc { color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0; line-height: 1.5; }
 .meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; color: var(--muted); font-size: 0.8125rem; margin: 0.6rem 0 0; }
 .tag { color: var(--ink); background: var(--marker); padding: 0 0.35rem; border-radius: 2px; }
-.tag-done { background: #cdeccb; }
 .tag-err { background: #f6c6c0; }
 .translate-one {
-  font: 600 0.8125rem var(--ui); color: var(--paper); background: var(--accent);
-  border: 0; border-radius: 6px; padding: 0.4rem 0.75rem; cursor: pointer; white-space: nowrap;
+  flex-shrink: 0; font-size: 0.9rem; line-height: 1; color: var(--accent); background: none;
+  border: 1px solid var(--rule); border-radius: 999px; width: 1.75rem; height: 1.75rem;
+  cursor: pointer; padding: 0;
 }
+.translate-one:hover { background: var(--sheet); }
 .translate-one:disabled { opacity: 0.55; cursor: default; }
 .empty pre { background: var(--sheet); padding: 0.75rem 1rem; border-radius: 6px; }
+
+/* ---------- Nút nổi: dịch hàng loạt ---------- */
+.batch-fab {
+  position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 25;
+  width: 3.25rem; height: 3.25rem; border-radius: 999px;
+  font-size: 1.4rem; line-height: 1; color: var(--paper); background: var(--ink);
+  border: 0; cursor: pointer; box-shadow: 0 8px 20px rgba(10, 20, 30, 0.3);
+}
+.batch-fab:hover { background: var(--accent); }
 
 /* ---------- Modal dịch hàng loạt ---------- */
 .modal {
@@ -83,6 +83,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .modal-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--rule); font-weight: 600; }
 .modal-all { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.1rem; border-bottom: 1px solid var(--rule); font-size: 0.875rem; }
+.modal-all[hidden] { display: none; }
 .batch-list { list-style: none; margin: 0; padding: 0.5rem 1.1rem; overflow-y: auto; }
 .batch-list li { padding: 0.4rem 0; }
 .batch-list label { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; }

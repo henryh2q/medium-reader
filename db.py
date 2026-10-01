@@ -10,9 +10,11 @@ CREATE TABLE IF NOT EXISTS articles (
     title        TEXT NOT NULL,
     author       TEXT,
     content_en   TEXT,
+    summary_en   TEXT,
     word_count   INTEGER DEFAULT 0,
     status       TEXT DEFAULT 'new',         -- new | translated | failed
     title_vi     TEXT,
+    summary_vi   TEXT,
     content_vi   TEXT,
     created_at   TEXT DEFAULT CURRENT_TIMESTAMP
 );

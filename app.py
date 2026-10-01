@@ -96,11 +96,17 @@ def admin_import(body: ImportIn, request: Request):
     md = fetcher.html_to_markdown_full(body.html)
     words = len(md.split())
     url = fetcher.clean_url(body.url)
+    title = body.title.strip()
+    try:
+        summary_en = llm.summarize_article(title, md)
+    except Exception:
+        log.exception("Tóm tắt lỗi khi import %s", url)
+        summary_en = None
     with db.conn() as c:
         cur = c.execute(
-            """INSERT OR IGNORE INTO articles (url, title, author, content_en, word_count, status)
-               VALUES (?, ?, ?, ?, ?, 'new')""",
-            (url, body.title.strip(), body.author.strip(), md, words),
+            """INSERT OR IGNORE INTO articles (url, title, author, content_en, summary_en, word_count, status)
+               VALUES (?, ?, ?, ?, ?, ?, 'new')""",
+            (url, title, body.author.strip(), md, summary_en, words),
         )
         if cur.rowcount == 0:
             return {"ok": False, "reason": "Bài đã có trong hệ thống."}
@@ -140,13 +146,23 @@ def _translate_one(article_id: int) -> None:
         _translating.add(article_id)
     try:
         with db.conn() as c:
-            a = c.execute("SELECT content_en FROM articles WHERE id=?", (article_id,)).fetchone()
+            a = c.execute("SELECT title, content_en, summary_en FROM articles WHERE id=?",
+                          (article_id,)).fetchone()
         if not a:
             return
-        vi = llm.translate_markdown(a["content_en"])
+        content_vi = llm.translate_markdown(a["content_en"])
+        title_vi, summary_vi = a["title"], a["summary_en"]
+        try:
+            ts = llm.translate_title_summary(a["title"], a["summary_en"] or "")
+            title_vi, summary_vi = ts["title_vi"], ts.get("summary_vi") or summary_vi
+        except Exception:
+            log.exception("Dịch title/summary lỗi #%d (vẫn dùng bản gốc)", article_id)
         with db.conn() as c:
-            c.execute("UPDATE articles SET status='translated', content_vi=? WHERE id=?",
-                      (vi, article_id))
+            c.execute(
+                """UPDATE articles SET status='translated', content_vi=?, title_vi=?, summary_vi=?
+                   WHERE id=?""",
+                (content_vi, title_vi, summary_vi, article_id),
+            )
         log.info("Đã dịch #%d", article_id)
     except Exception:
         log.exception("Dịch lỗi #%d", article_id)
@@ -176,9 +192,12 @@ def admin_translate_batch(body: TranslateBatchIn):
     with db.conn() as c:
         placeholders = ",".join("?" * len(body.article_ids))
         rows = c.execute(
-            f"SELECT id FROM articles WHERE id IN ({placeholders})", body.article_ids
+            f"""SELECT id FROM articles WHERE id IN ({placeholders})
+                AND status != 'translated'""",
+            body.article_ids,
         ).fetchall()
-    ids = [r["id"] for r in rows]
+    with _translating_lock:
+        ids = [r["id"] for r in rows if r["id"] not in _translating]
     for article_id in ids:
         threading.Thread(target=_translate_one, args=(article_id,), daemon=True).start()
     return {"ok": True, "count": len(ids)}
