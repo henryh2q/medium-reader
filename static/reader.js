@@ -156,4 +156,14 @@
   const closePanel = () => { panel.hidden = true; document.body.classList.remove('panel-open'); };
   panel.querySelector('.panel-close').addEventListener('click', closePanel);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
+
+  /* ---------- Nút lên đầu trang ---------- */
+  const topBtn = document.getElementById('back-to-top');
+  if (topBtn) {
+    const SHOW_AFTER_PX = 600;
+    const syncTopBtn = () => { topBtn.hidden = window.scrollY < SHOW_AFTER_PX; };
+    document.addEventListener('scroll', syncTopBtn, { passive: true });
+    syncTopBtn();
+    topBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  }
 })();
