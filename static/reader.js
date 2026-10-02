@@ -113,9 +113,16 @@
   const render = (d) => {
     const h = el('h2', 'x-term');
     h.append(el('span', null, d.term));
-    const nodes = [h, el('p', 'x-short', d.short),
+    const nodes = [h];
+    if (d.pronunciation && (d.pronunciation.ipa || d.pronunciation.vi)) {
+      const p = el('p', 'x-pronunciation');
+      if (d.pronunciation.ipa) p.append(el('span', 'x-ipa', d.pronunciation.ipa));
+      if (d.pronunciation.vi) p.append(el('span', 'x-vi-sound', `cách đọc: ${d.pronunciation.vi}`));
+      nodes.push(p);
+    }
+    nodes.push(el('p', 'x-short', d.short),
       section('Giải thích', d.detail),
-      section('Hình dung', d.analogy)];
+      section('Hình dung', d.analogy));
     let ex = section('Ví dụ', d.example);
     if (d.code && d.code.snippet) {
       if (!ex) { ex = el('section', 'x-section'); ex.append(el('h3', null, 'Ví dụ')); }

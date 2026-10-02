@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
+import categories
 import config
 import db
 import emailer
@@ -300,7 +301,7 @@ templates.env.filters["date"] = fmt_date
 
 
 @app.get("/")
-def index(request: Request, tag: str | None = None):
+def index(request: Request, tag: str | None = None, category: str | None = None):
     with db.conn() as c:
         if tag:
             rows = c.execute(
@@ -328,14 +329,24 @@ def index(request: Request, tag: str | None = None):
             ):
                 tags_by_article[r["article_id"]].append(r["name"])
         all_tags = [r["name"] for r in c.execute("SELECT name FROM tags ORDER BY name")]
+
+    categories_by_article = {
+        aid: categories.categories_for_tags(names) for aid, names in tags_by_article.items()
+    }
+    if category:
+        rows = [r for r in rows if category in categories_by_article.get(r["id"], [])]
+
     with _translating_lock:
         translating_ids = set(_translating)
     return templates.TemplateResponse(request, "index.html", {
         "articles": rows,
         "translating_ids": translating_ids,
         "tags_by_article": tags_by_article,
+        "categories_by_article": categories_by_article,
+        "all_categories": categories.CATEGORIES,
         "all_tags": all_tags,
         "active_tag": tag,
+        "active_category": category,
     })
 
 

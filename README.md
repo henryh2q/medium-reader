@@ -25,6 +25,7 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | File | Vai trò |
 |---|---|
 | `config.py` | Model dùng để dịch/giải thích, token/admin/email config |
+| `categories.py` | Gộp tag chi tiết về 2 category chính hiển thị trên trang chủ (AI, System Design) |
 | `fetcher.py` | HTML (từ extension) -> Markdown |
 | `llm.py` | Tóm tắt + tag, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
 | `emailer.py` | Gửi email thông báo (yêu cầu token, feedback) qua Resend API |
@@ -85,13 +86,18 @@ Bài đã dịch hiện tiêu đề và tóm tắt bằng tiếng Việt, không
 có ghi nguồn (link bài gốc + tác giả) ở cuối trang đọc, cùng dòng nhắc đây là bản dịch
 không chính thức — bản quyền nội dung thuộc về tác giả gốc.
 
-## Tag chủ đề
+## Tag chủ đề & category
 
 Mỗi bài có 2-3 tag chủ đề: nếu extension tìm thấy tag thật trên trang (hiện chỉ áp
 dụng với Medium — link `/tag/<slug>` đầu bài viết) thì dùng luôn; nếu không, server
 để Claude tự sinh tag cùng lúc tóm tắt lúc import (không tốn thêm lần gọi riêng).
-Bấm vào một tag (trên thanh lọc đầu trang, hoặc tag nhỏ dưới mỗi bài) để lọc danh
-sách theo đúng chủ đề đó (`GET /?tag=<tên tag>`).
+Tag nhỏ vẫn hiện dưới mỗi bài — bấm vào để lọc đúng tag đó (`GET /?tag=<tên tag>`).
+
+Thanh lọc chính ở đầu trang chỉ hiện 2 category lớn — **AI** và **System Design**
+(`categories.py`) — để không chiếm hết diện tích màn hình trên mobile khi có nhiều
+tag. Mỗi category gộp từ các tag khớp từ khoá (vd. tag "AI Agents", "Data Science"
+đều thuộc category AI); một bài có thể thuộc cả 2 category nếu tag của nó khớp cả
+hai. Bấm category để lọc (`GET /?category=AI` hoặc `?category=System Design`).
 
 ## Thêm vào màn hình chính (mobile)
 
@@ -127,6 +133,9 @@ qua `POST /api/feedback` (dùng chung `emailer.py`/Resend với luồng yêu c�
   (token riêng / không xác thực vì là thao tác công khai).
 - Dùng cho cá nhân. Không public bản dịch vì nội dung thuộc bản quyền tác giả.
 - Bôi đen cắt ngang nhiều định dạng (vd. nửa chữ đậm) vẫn giải thích được, chỉ là không tô vệt dạ quang.
+- Giải thích thuật ngữ kèm cách phát âm (IPA + cách đọc phỏng theo tiếng Việt) khi
+  thuật ngữ là từ/cụm từ tiếng Anh có cách đọc không hiển nhiên; bỏ qua với viết tắt
+  đọc từng chữ cái (API, SQL...).
 - Trạng thái "đang dịch" lưu trong bộ nhớ process — chạy nhiều worker/instance cùng lúc
   có thể dịch trùng một bài (xem `Dockerfile`, cố định 1 worker).
 - Extension chưa publish lên Chrome Web Store (cần tài khoản Google Developer trả

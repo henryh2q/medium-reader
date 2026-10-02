@@ -5,11 +5,11 @@
   <header class="shelf-head">
     <h1>Đọc gì hôm nay</h1>
     <p>Kho bài kỹ thuật bạn tự chọn, dịch sẵn sang tiếng Việt để đọc khi rảnh.</p>
-    {% if all_tags %}
+    {% if all_categories %}
     <nav class="topic-filter" aria-label="Lọc theo chủ đề">
-      <a href="/" class="topic-pill{% if not active_tag %} active{% endif %}">Tất cả</a>
-      {% for t in all_tags %}
-      <a href="/?tag={{ t | urlencode }}" class="topic-pill{% if t == active_tag %} active{% endif %}">{{ t }}</a>
+      <a href="/" class="topic-pill{% if not active_category %} active{% endif %}">Tất cả</a>
+      {% for cat in all_categories %}
+      <a href="/?category={{ cat | urlencode }}" class="topic-pill{% if cat == active_category %} active{% endif %}">{{ cat }}</a>
       {% endfor %}
     </nav>
     {% endif %}

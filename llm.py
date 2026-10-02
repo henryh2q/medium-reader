@@ -123,8 +123,16 @@ Write in Vietnamese. Keep the term itself and other jargon in English.
 Use the article title and the surrounding paragraph to choose the right meaning.
 If the selection is a phrase rather than a term, explain the phrase.
 
+If the term is an English word/phrase with a non-obvious pronunciation for a
+Vietnamese speaker, include IPA plus a simple Vietnamese-spelling approximation of the
+sound (the way Vietnamese dictionaries romanize English pronunciation, e.g. "cache" ->
+"/kæʃ/" and "kiếts" or similar — approximate, optimized for a Vietnamese reader to say
+it out loud, not for phonetic precision). Omit pronunciation for acronyms read letter by
+letter (API, SQL) or terms that are not really "spoken" as English words.
+
 Return ONLY JSON:
 {"term": "<the term>",
+ "pronunciation": null or {"ipa": "<IPA, e.g. /kæʃ/>", "vi": "<cách đọc phỏng theo tiếng Việt>"},
  "short": "<one-sentence definition>",
  "detail": "<clear explanation, 2 short paragraphs separated by \\n\\n: what it is, why it matters, how it works>",
  "analogy": "<an everyday comparison that makes it click>",

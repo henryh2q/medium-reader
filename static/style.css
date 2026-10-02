@@ -239,6 +239,8 @@ mark.term {
 
 .x-term { font-size: 1.4rem; font-weight: 700; margin: 0; }
 .x-term span { background: linear-gradient(transparent 55%, var(--marker) 55%); }
+.x-pronunciation { display: flex; flex-wrap: wrap; gap: 0 0.6rem; margin: 0.3rem 0 0; font-size: 0.875rem; color: var(--muted); }
+.x-ipa { font-family: var(--read); font-style: italic; }
 .x-short { font-family: var(--read); font-size: 1.05rem; line-height: 1.6; margin: 0.6rem 0 0; }
 .x-section { margin-top: 1.4rem; }
 .x-section h3 { font-size: 0.875rem; font-weight: 600; color: var(--accent); margin: 0 0 0.35rem; }
