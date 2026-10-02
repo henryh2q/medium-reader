@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Đọc gì hôm nay — Import",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Gửi bài bạn đang đọc (Medium, InfoQ, blog...) về app 'Đọc gì hôm nay'.",
   "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],

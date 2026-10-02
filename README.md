@@ -38,14 +38,15 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | `static/reader.js` | Bôi đen -> nút "Giải thích thuật ngữ" -> panel; chuyển VI/EN |
 | `static/logo.svg` | Logo gốc (SVG) — nguồn sinh favicon và icon extension |
 | `static/icons/google-translate*.png` | Icon nút "Dịch" — tải từ [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Google_Translate_Icon.png), là logo/nhãn hiệu của Google, dùng ở đây không có liên kết hay được Google tài trợ |
-| `extension/` | Extension Chrome/Edge: đưa bài bạn đang đọc vào app (mọi trang có `<article>`) |
+| `extension/` | Extension Chrome/Edge: đưa bài bạn đang đọc vào app (`<article>`, rơi về `<main>` nếu trang không có) |
 
 ## Đưa bài vào app (extension)
 
 Mở bài bạn muốn đọc trên trình duyệt (đăng nhập tài khoản member nếu cần), bấm
 extension để gửi **nội dung đã render trên trang** về app — không có bot nào tự động
-truy cập trang nguồn thay bạn. Hoạt động với mọi trang có thẻ `<article>`, không
-riêng Medium.
+truy cập trang nguồn thay bạn. Ưu tiên thẻ `<article>` cụ thể nhất nếu trang có; nếu
+không (vd. blog dựng bằng Next.js/Webflow chỉ có `<main>`), tự rơi về `<main>` hoặc
+`[role="main"]` — không riêng Medium hay trang có cấu trúc chuẩn.
 
 **Với chính bạn (chủ site):**
 1. Đặt `IMPORT_TOKEN` (chuỗi ngẫu nhiên dài) trong `.env` hoặc biến môi trường Railway.

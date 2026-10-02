@@ -15,11 +15,25 @@ const setStatus = (text, cls) => {
 
 // Chạy trong trang đang mở để lấy nội dung bài viết đã render (bạn đang tự đọc,
 // kể cả nội dung cần đăng nhập) — không tự động truy cập trang nào thay bạn.
+// Hàm này được inject nguyên văn vào trang qua chrome.scripting.executeScript
+// (func.toString()), nên không được gọi hàm nào định nghĩa bên ngoài nó — mọi
+// logic phụ trợ (vd. tìm vùng nội dung chính) phải viết lồng bên trong.
 function extractArticle() {
-  const article = document.querySelector('article');
+  // Không phải mọi trang đều dùng thẻ <article> (vd. blog dựng bằng Next.js/
+  // Webflow chỉ có <main>) — ưu tiên <article> cụ thể nhất nếu có; chỉ rơi về
+  // <main>/[role=main] (kém chính xác hơn, có thể dính cả nav/sidebar) khi
+  // trang không có <article> nào.
+  const articleCandidates = [...document.querySelectorAll('article')]
+    .filter((el) => el.textContent.trim().length > 200)
+    .sort((a, b) => b.textContent.length - a.textContent.length);
+  const fallbackCandidates = [document.querySelector('main'), document.querySelector('[role="main"]')]
+    .filter(Boolean)
+    .filter((el) => el.textContent.trim().length > 200)
+    .sort((a, b) => b.textContent.length - a.textContent.length);
+  const article = articleCandidates[0] || fallbackCandidates[0] || null;
   if (!article) return null;
   const clone = article.cloneNode(true);
-  clone.querySelectorAll('header, button').forEach((el) => el.remove());
+  clone.querySelectorAll('header, nav, footer, button, script, style, noscript, svg').forEach((el) => el.remove());
   const title = document.title.replace(/\s*\|\s*by.*$/, '').trim();
   const authorLink = document.querySelector('a[rel="author"], a[data-testid="authorName"]');
   // Medium hiện tag bài viết dạng link trỏ tới /tag/<slug> ngay trên đầu bài; site
