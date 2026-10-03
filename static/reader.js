@@ -6,6 +6,7 @@
   const btn = document.getElementById('explain-btn');
   const panel = document.getElementById('explain-panel');
   const panelBody = panel.querySelector('.panel-body');
+  const panelLabel = document.getElementById('panel-label');
   const cache = new Map();          // term -> data (trong phiên đọc)
   let pending = null;               // {text, range}
 
@@ -96,6 +97,7 @@
   };
 
   const openPanel = (...nodes) => {
+    panelLabel.textContent = 'Giải thích';
     panelBody.replaceChildren(...nodes);
     panel.hidden = false;
     document.body.classList.add('panel-open');
@@ -152,6 +154,48 @@
       openPanel(el('p', 'x-error', `${err.message} Bôi đen lại thuật ngữ để thử lần nữa.`));
     }
   };
+
+  /* ---------- Tóm tắt ý chính cả bài ---------- */
+  const summaryBtn = document.getElementById('summary-btn');
+  let summaryData = null;           // cache trong phiên đọc; server cũng cache vào DB
+  let summaryLoading = false;
+
+  const openSummaryPanel = (...nodes) => {
+    openPanel(...nodes);
+    panelLabel.textContent = 'Tóm tắt ý chính';
+  };
+
+  const renderSummary = (d) => {
+    const nodes = [];
+    if (d.tldr) nodes.push(el('p', 'x-short', d.tldr));
+    const s = el('section', 'x-section');
+    s.append(el('h3', null, 'Ý chính'));
+    const ul = el('ul', 'x-points');
+    d.points.forEach((p) => ul.append(el('li', null, p)));
+    s.append(ul);
+    nodes.push(s);
+    openSummaryPanel(...nodes);
+  };
+
+  if (summaryBtn) {
+    summaryBtn.addEventListener('click', async () => {
+      if (summaryData) return renderSummary(summaryData);
+      if (summaryLoading) return;
+      summaryLoading = true;
+      openSummaryPanel(el('p', 'x-status', 'Đang tóm tắt bài viết…'));
+      try {
+        const res = await fetch(`/api/articles/${articleId}/summary`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Không lấy được tóm tắt.');
+        summaryData = data;
+        renderSummary(data);
+      } catch (err) {
+        openSummaryPanel(el('p', 'x-error', `${err.message} Bấm lại nút tóm tắt để thử lần nữa.`));
+      } finally {
+        summaryLoading = false;
+      }
+    });
+  }
 
   const closePanel = () => { panel.hidden = true; document.body.classList.remove('panel-open'); };
   panel.querySelector('.panel-close').addEventListener('click', closePanel);

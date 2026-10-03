@@ -32,6 +32,15 @@ CREATE TABLE IF NOT EXISTS explanations (
     PRIMARY KEY (term_key, article_id)
 );
 
+-- Tóm tắt ý chính của cả bài (nút tóm tắt ở trang đọc). Mỗi bài chỉ gọi Claude một
+-- lần rồi lưu lại ở đây để các lần sau không tốn token.
+CREATE TABLE IF NOT EXISTS article_summaries (
+    article_id INTEGER PRIMARY KEY,
+    data       TEXT NOT NULL,                -- JSON {"tldr": str, "points": [str]}
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (article_id) REFERENCES articles(id)
+);
+
 CREATE TABLE IF NOT EXISTS tags (
     id   INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL

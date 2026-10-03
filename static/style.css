@@ -161,6 +161,24 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 .back-to-top:hover { color: var(--accent); border-color: var(--accent); }
 body.panel-open .back-to-top { display: none; }
 
+.summary-btn {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 25;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.5rem; height: 3rem; padding: 0;
+  color: var(--paper); background: var(--ink); border: 0; cursor: pointer;
+  border-radius: 10px 0 0 10px; box-shadow: 0 4px 12px rgba(10, 20, 30, 0.25);
+}
+.summary-btn:hover { background: var(--accent); }
+body.panel-open .summary-btn { display: none; }
+@media (max-width: 40rem) {
+  .summary-btn {
+    top: auto; bottom: 4.5rem; right: 1.25rem; transform: none;
+    width: 2.75rem; height: 2.75rem; border-radius: 999px;
+  }
+}
+.x-points { margin: 0; padding-left: 1.25rem; font-family: var(--read); line-height: 1.65; }
+.x-points li { margin: 0 0 0.6rem; }
+
 /* ---------- Trang /submit, feedback modal ---------- */
 .back-link { display: inline-block; color: var(--muted); font-size: 0.875rem; text-decoration: none; margin-bottom: 1rem; }
 .back-link:hover { color: var(--accent); }

@@ -147,3 +147,28 @@ def explain_term(term: str, context: str, article_title: str) -> dict:
             f"Term: {term}\n\n"
             f"Paragraph containing it:\n{context[:1500]}")
     return _parse_json(_call(config.MODEL_EXPLAIN, EXPLAIN_SYSTEM, user, 1500))
+
+
+# ---------- 4. Tóm tắt ý chính cả bài ----------
+
+KEYPOINTS_SYSTEM = """You summarize a technical article for a Vietnamese software engineer
+who wants the gist before deciding to read it in full.
+
+Write in Vietnamese; keep established technical terms in English. Be concrete: name the
+actual techniques, numbers and conclusions from the article, not generic statements.
+
+Return ONLY JSON:
+{"tldr": "<1-2 sentence overall takeaway>",
+ "points": ["<key point 1>", "... 4 to 7 points, each one self-contained sentence, in the article's order"]}"""
+
+_KEYPOINTS_MAX_CHARS = 60_000
+
+
+def summarize_key_points(title: str, content: str) -> dict:
+    """Trả về {"tldr": str, "points": list[str]}."""
+    user = f"Title: {title}\n\nArticle:\n{content[:_KEYPOINTS_MAX_CHARS]}"
+    data = _parse_json(_call(config.MODEL_SUMMARIZE, KEYPOINTS_SYSTEM, user, 1200))
+    return {
+        "tldr": (data.get("tldr") or "").strip(),
+        "points": [p.strip() for p in data.get("points", []) if isinstance(p, str) and p.strip()],
+    }

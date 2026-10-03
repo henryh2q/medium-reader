@@ -87,6 +87,13 @@ Bài đã dịch hiện tiêu đề và tóm tắt bằng tiếng Việt, không
 có ghi nguồn (link bài gốc + tác giả) ở cuối trang đọc, cùng dòng nhắc đây là bản dịch
 không chính thức — bản quyền nội dung thuộc về tác giả gốc.
 
+## Tóm tắt ý chính
+
+Trang đọc có nút icon cố định ở mép phải (đi theo khi cuộn). Bấm vào để Claude tóm
+tắt các ý chính của cả bài (`POST /api/articles/<id>/summary`, dùng `MODEL_SUMMARIZE`).
+Mỗi bài chỉ gọi Claude **một lần** — kết quả lưu vào bảng `article_summaries`, các lần
+bấm sau (kể cả từ người khác) trả thẳng từ DB, không tốn token. Lỗi không được cache.
+
 ## Tag chủ đề & category
 
 Mỗi bài có 2-3 tag chủ đề: nếu extension tìm thấy tag thật trên trang (hiện chỉ áp

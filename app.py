@@ -490,3 +490,26 @@ def explain(body: ExplainIn):
         c.execute("INSERT OR REPLACE INTO explanations (term_key, article_id, data) VALUES (?,?,?)",
                   (key, body.article_id, json.dumps(data, ensure_ascii=False)))
     return data
+
+
+@app.post("/api/articles/{article_id}/summary")
+def article_summary(article_id: int):
+    """Tóm tắt ý chính cả bài. Gọi Claude đúng một lần cho mỗi bài, lần sau trả từ cache."""
+    with db.conn() as c:
+        hit = c.execute("SELECT data FROM article_summaries WHERE article_id=?", (article_id,)).fetchone()
+        if hit:
+            return json.loads(hit["data"])
+        a = c.execute("SELECT title, content_en FROM articles WHERE id=?", (article_id,)).fetchone()
+    if not a or not a["content_en"]:
+        raise HTTPException(404, "Không tìm thấy bài viết")
+    try:
+        data = llm.summarize_key_points(a["title"], a["content_en"])
+    except Exception:
+        log.exception("Tóm tắt ý chính lỗi cho bài %s", article_id)
+        raise HTTPException(502, "Model không phản hồi. Thử lại sau vài giây.")
+    if not data["points"]:
+        raise HTTPException(502, "Model trả về tóm tắt rỗng. Thử lại sau vài giây.")
+    with db.conn() as c:
+        c.execute("INSERT OR IGNORE INTO article_summaries (article_id, data) VALUES (?, ?)",
+                  (article_id, json.dumps(data, ensure_ascii=False)))
+    return data

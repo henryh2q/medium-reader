@@ -17,8 +17,11 @@
   </nav>
 
   <header class="reader-head">
-    <h1>{{ a.title_vi or a.title }}</h1>
-    <p class="orig">{{ a.title }}</p>
+    <h1>
+      <span class="lang-vi">{{ a.title_vi or a.title }}</span>
+      <span class="lang-en" lang="en">{{ a.title }}</span>
+    </h1>
+    <p class="orig lang-vi">{{ a.title }}</p>
     <p class="meta">
       <span>{{ a.author }}</span>
       <span>{{ a.created_at | date }}</span>
@@ -41,11 +44,18 @@
 
 <button type="button" id="explain-btn" class="explain-btn" hidden>Giải thích thuật ngữ</button>
 
+<button type="button" id="summary-btn" class="summary-btn" title="Tóm tắt ý chính" aria-label="Tóm tắt ý chính">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M4 6h16M4 12h10M4 18h7"/>
+    <path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z" fill="currentColor" stroke="none"/>
+  </svg>
+</button>
+
 <button type="button" id="back-to-top" class="back-to-top" hidden title="Lên đầu trang" aria-label="Lên đầu trang">↑</button>
 
 <aside id="explain-panel" class="panel" hidden aria-live="polite">
   <div class="panel-bar">
-    <span class="panel-label">Giải thích</span>
+    <span class="panel-label" id="panel-label">Giải thích</span>
     <button type="button" class="panel-close" aria-label="Đóng">×</button>
   </div>
   <div class="panel-body"></div>
