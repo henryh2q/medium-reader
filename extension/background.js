@@ -12,7 +12,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        sendResponse({ ok: false, error: data.detail || `HTTP ${res.status}` });
+        // FastAPI trả `detail` là chuỗi (lỗi nghiệp vụ) hoặc mảng object (lỗi
+        // validation 422) — chuyển về chuỗi đọc được thay vì "[object Object]".
+        const detail = Array.isArray(data.detail)
+          ? data.detail.map((d) => `${(d.loc || []).slice(1).join('.')}: ${d.msg}`).join('; ')
+          : data.detail;
+        sendResponse({ ok: false, error: detail || `HTTP ${res.status}` });
         return;
       }
       sendResponse({ ok: true, data });

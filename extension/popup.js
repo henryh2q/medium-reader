@@ -33,7 +33,16 @@ function extractArticle() {
   const article = articleCandidates[0] || fallbackCandidates[0] || null;
   if (!article) return null;
   const clone = article.cloneNode(true);
-  clone.querySelectorAll('header, nav, footer, button, script, style, noscript, svg').forEach((el) => el.remove());
+  clone.querySelectorAll('header, nav, footer, button, script, style, noscript, svg, picture source').forEach((el) => el.remove());
+  // HTML của Medium/blog hiện đại phình rất to vì class, style, data-*... — server
+  // chỉ cần cấu trúc thẻ + href/src/alt, nên bỏ hết thuộc tính khác để bài dài
+  // không vượt giới hạn dung lượng.
+  const keepAttrs = ['href', 'src', 'alt', 'title'];
+  clone.querySelectorAll('*').forEach((el) => {
+    [...el.attributes].forEach((attr) => {
+      if (!keepAttrs.includes(attr.name)) el.removeAttribute(attr.name);
+    });
+  });
   const title = document.title.replace(/\s*\|\s*by.*$/, '').trim();
   const authorLink = document.querySelector('a[rel="author"], a[data-testid="authorName"]');
   // Medium hiện tag bài viết dạng link trỏ tới /tag/<slug> ngay trên đầu bài; site

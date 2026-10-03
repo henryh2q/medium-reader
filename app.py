@@ -158,7 +158,7 @@ class ImportIn(BaseModel):
     url: str = Field(min_length=1, max_length=2000)
     title: str = Field(min_length=1, max_length=500)
     author: str = Field(default="", max_length=200)
-    html: str = Field(min_length=1, max_length=500_000)
+    html: str = Field(min_length=1, max_length=3_000_000)
     tags: list[str] = Field(default_factory=list, max_length=10)
 
 
