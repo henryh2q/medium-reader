@@ -46,6 +46,18 @@ def send_token_request_notice(request_id: str, note: str) -> bool:
     return _send("Yêu cầu cấp token — Đọc gì hôm nay", body)
 
 
+def send_submission_notice(url: str, note: str) -> bool:
+    """Báo cho admin có URL mới trong hàng đợi."""
+    admin_link = f"{config.PUBLIC_URL}/admin/queue" if config.PUBLIC_URL else "/admin/queue"
+    body = (
+        f"<p>Có link mới trong hàng đợi.</p>"
+        f"<p><b>Link:</b> {html_lib.escape(url)}</p>"
+        f"<p><b>Ghi chú:</b> {html_lib.escape(note) or '(không có)'}</p>"
+        f"<p><a href=\"{admin_link}\">Xử lý tại {admin_link}</a></p>"
+    )
+    return _send("Link mới trong hàng đợi — Đọc gì hôm nay", body)
+
+
 def send_feedback_notice(kind: str, message: str, contact: str) -> bool:
     """Báo cho admin có người gửi báo cáo sự cố / đóng góp ý kiến."""
     label = "Báo cáo sự cố" if kind == "bug" else "Đóng góp ý tưởng"

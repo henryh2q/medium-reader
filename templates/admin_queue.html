@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Hàng đợi link{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<main class="shelf">
+  <header class="shelf-head">
+    <nav class="admin-nav"><a href="/admin/queue" class="active">Hàng đợi link</a><a href="/admin/requests">Yêu cầu token</a></nav>
+    <h1>Hàng đợi link</h1>
+    <p>Bấm <b>Mở bài</b> để mở link ở tab mới, rồi dùng extension đưa bài vào. Mục sẽ tự chuyển
+      sang "Đã đưa vào" khi import xong. Link lạ có thể không an toàn — xem kỹ tên miền trước khi mở.</p>
+  </header>
+
+  {% if not pending %}
+  <p class="hint">Không có link nào đang chờ.</p>
+  {% endif %}
+
+  <ol class="entries">
+  {% for s in pending %}
+    <li class="entry" data-id="{{ s.id }}">
+      <div>
+        <h2><a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.url | host }}</a></h2>
+        <p class="desc">{{ s.url }}</p>
+        {% if s.note %}<p class="desc">Ghi chú: {{ s.note }}</p>{% endif %}
+        <p class="meta"><span>{{ s.created_at }}</span></p>
+        <p class="queue-actions">
+          <a class="queue-open" href="{{ s.url }}" target="_blank" rel="noopener noreferrer">Mở bài</a>
+          <button type="button" class="reject-btn" data-id="{{ s.id }}">Từ chối</button>
+        </p>
+      </div>
+    </li>
+  {% endfor %}
+  </ol>
+
+  {% if done %}
+  <section class="form-block">
+    <h2>Đã xử lý gần đây</h2>
+    <ol class="entries">
+    {% for s in done %}
+      <li class="entry">
+        <p class="meta">
+          {% if s.status == 'imported' %}<span class="tag tag-done">Đã đưa vào</span>
+          {% else %}<span class="tag tag-err">Đã từ chối</span>{% endif %}
+          <span>{{ s.url | host }}</span><span>{{ s.created_at }}</span>
+        </p>
+      </li>
+    {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+</main>
+
+<script src="/static/admin_queue.js"></script>
+{% endblock %}

@@ -1,14 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Yêu cầu quyền gửi bài — Đọc gì hôm nay{% endblock %}
+{% block title %}Gửi bài viết — Đọc gì hôm nay{% endblock %}
 {% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
 {% block content %}
 <main class="shelf">
   <header class="shelf-head">
     <a href="/" class="back-link">← Về trang chủ</a>
     <h1>Gửi bài viết</h1>
-    <p>Để gửi bài viết vào "Đọc gì hôm nay", bạn cần cài một extension trình duyệt
-      nhỏ và một token truy cập. Token được admin duyệt thủ công để tránh spam.</p>
+    <p>Dán link bài bạn muốn đọc. Admin sẽ mở link và đưa bài vào site khi có thời gian —
+      bài chỉ hiện trên trang chủ sau khi được xử lý.</p>
   </header>
+
+  <section class="form-block">
+    <h2>Gửi link bài viết</h2>
+    <label for="submit-url">Link bài viết</label>
+    <input id="submit-url" type="url" inputmode="url" autocomplete="off" maxlength="2000" placeholder="https://…">
+    <label for="submit-note">Ghi chú (tuỳ chọn)</label>
+    <input id="submit-note" maxlength="300" placeholder="vd. email để được báo khi bài lên">
+    <button type="button" id="submit-url-btn">Gửi link</button>
+    <p id="submit-url-status" class="hint"></p>
+  </section>
+
+  <details id="extension-details" class="extension-details">
+  <summary>Muốn tự đưa bài vào ngay bằng extension (cần token)</summary>
+  <p class="hint">Dùng được trên Chrome/Edge desktop. Token được admin duyệt thủ công để tránh spam.</p>
 
   <section class="form-block">
     <h2>Bước 1 — Cài extension</h2>
@@ -40,7 +54,9 @@
     <p class="hint">Token của bạn — dán vào extension đã cài ở Bước 1:</p>
     <p><code id="token-value" class="token-box"></code></p>
   </section>
+  </details>
 </main>
 
+<script src="/static/submit_url.js"></script>
 <script src="/static/submit.js"></script>
 {% endblock %}

@@ -297,3 +297,21 @@ mark.term {
   body.panel-open .reader { transform: translateX(-12rem); }
 }
 @media (min-width: 72rem) and (prefers-reduced-motion: reduce) { .reader { transition: none; } }
+
+/* ---------- Hàng đợi link (admin) + mục extension ở /submit ---------- */
+.admin-nav { display: flex; gap: 1rem; margin: 0 0 1rem; font-size: 0.875rem; }
+.admin-nav a { color: var(--muted); text-decoration: none; padding-bottom: 0.15rem; }
+.admin-nav a.active { color: var(--ink); border-bottom: 2px solid var(--accent); }
+.queue-actions { display: flex; gap: 0.6rem; margin: 0.75rem 0 0; }
+.queue-open, .reject-btn {
+  font: 600 0.8125rem var(--ui); border-radius: 6px; padding: 0.4rem 0.9rem;
+  cursor: pointer; text-decoration: none;
+}
+.queue-open { color: var(--paper); background: var(--ink); border: 1px solid var(--ink); }
+.queue-open:hover { background: var(--accent); border-color: var(--accent); }
+.reject-btn { color: var(--muted); background: none; border: 1px solid var(--rule); }
+.reject-btn:hover { color: #b3261e; border-color: #b3261e; }
+.reject-btn:disabled { opacity: 0.55; cursor: default; }
+.extension-details { margin-top: 2rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+.extension-details summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+.extension-details summary:hover { color: var(--ink); }

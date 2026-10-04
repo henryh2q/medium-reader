@@ -29,9 +29,11 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | `fetcher.py` | HTML (từ extension) -> Markdown |
 | `llm.py` | Tóm tắt + tag, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
 | `emailer.py` | Gửi email thông báo (yêu cầu token, feedback) qua Resend API |
-| `app.py` | FastAPI: danh sách bài, trang đọc, import/dịch, `/submit` + `/admin/requests` (duyệt token), feedback, SEO (`/sitemap.xml`, `/robots.txt`) |
+| `app.py` | FastAPI: danh sách bài, trang đọc, import/dịch, `/submit` + hàng đợi link `/admin/queue` + `/admin/requests` (duyệt token), feedback, SEO (`/sitemap.xml`, `/robots.txt`) |
 | `static/translate.js` | Icon dịch cạnh từng bài + polling `GET /api/status` để tự cập nhật, không cần reload |
 | `static/submit.js` | Luồng yêu cầu token: tạo request, polling trạng thái, resume qua `?request_id=` |
+| `static/submit_url.js` | Ô "Gửi link bài viết" ở `/submit` (hàng đợi URL), điền sẵn từ `?url=` |
+| `static/admin_queue.js` | Nút "Từ chối" trên trang hàng đợi `/admin/queue` |
 | `static/admin_requests.js` | Nút "Duyệt" trên trang quản trị |
 | `static/feedback.js` | Modal "Báo lỗi / Góp ý" |
 | `static/fresh-on-resume.js` | Tự reload trang chủ khi app PWA quay lại foreground sau khi rời đi lâu |
@@ -55,11 +57,32 @@ không (vd. blog dựng bằng Next.js/Webflow chỉ có `<main>`), tự rơi v�
 3. Mở bài viết, đọc đến hết trang (để nội dung render đầy đủ).
 4. Bấm icon extension → dán `IMPORT_TOKEN` → **Đưa bài đang mở vào app**.
 
-**Với người khác muốn gửi bài:** bấm nút **"+"** (góc dưới phải trang chủ) →
-`/submit` → yêu cầu token → đợi admin duyệt tại `/admin/requests` (có Basic Auth
+**Với người khác muốn gửi bài (kể cả trên mobile):** bấm nút **"+"** (góc dưới phải
+trang chủ) → `/submit` → dán link bài → **Gửi link**. Link vào **hàng đợi** (xem mục
+dưới), không cần cài gì. Ai muốn tự đưa bài vào ngay bằng extension thì mở mục "extension"
+trên cùng trang → yêu cầu token → đợi admin duyệt tại `/admin/requests` (có Basic Auth
 riêng, xem `ADMIN_USER`/`ADMIN_PASS` bên dưới) → trang tự cập nhật khi được duyệt
-(polling `GET /api/token-requests/<id>` mỗi 5s, không cần tải lại) → hiện token +
-hướng dẫn cài extension thủ công (chưa publish lên Chrome Web Store).
+(polling `GET /api/token-requests/<id>` mỗi 5s) → hiện token + hướng dẫn cài extension
+thủ công (chưa publish lên Chrome Web Store).
+
+### Hàng đợi link (gửi từ mobile, xử lý ở PC)
+
+Trình duyệt mobile không cài được extension, nên người dùng chỉ gửi **URL**
+(`POST /api/submissions`); server **không tự tải trang đó** (sẽ bị Cloudflare chặn, và
+không có phiên đăng nhập member của bạn). Admin xử lý ở PC tại **`/admin/queue`** (Basic
+Auth): bấm **Mở bài** → dùng extension đưa bài vào như thường → mục tự chuyển sang
+"Đã đưa vào" khi `/admin/import` nhận URL khớp (so khớp sau khi bỏ query, `#`, dấu `/`
+cuối). Hoặc bấm **Từ chối**.
+
+- Ô gửi link công khai nên có giới hạn: 5 link/giờ mỗi IP, tối đa 500 link đang chờ,
+  chỉ nhận `http(s)://`, tự bỏ link trùng và link của bài đã có. Gửi kèm header
+  `X-Import-Token` (token chủ site) thì không bị giới hạn tần suất.
+- Có `RESEND_API_KEY` + `ADMIN_EMAIL` thì mỗi link mới báo qua email; không có thì tự vào
+  `/admin/queue` xem.
+- `/submit?url=<link>` điền sẵn ô link — dùng được cho bookmarklet hoặc iOS Shortcut
+  (chưa có sẵn Shortcut nào, tự tạo nếu cần).
+- Link do người lạ gửi có thể độc hại: trang admin hiện rõ tên miền, link mở với
+  `rel="noopener noreferrer"`, nhưng vẫn nên xem kỹ trước khi mở.
 
 Bài hiện ngay trên trang chủ kèm tóm tắt tiếng Anh và 2-3 tag chủ đề (tự sinh lúc
 import — ưu tiên tag thật lấy từ trang nếu extension tìm thấy, vd. tag Medium).

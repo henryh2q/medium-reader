@@ -31,6 +31,7 @@
   };
 
   const startWaiting = (requestId) => {
+    document.getElementById('extension-details').open = true;
     const url = new URL(location.href);
     url.searchParams.set('request_id', requestId);
     history.replaceState(null, '', url);

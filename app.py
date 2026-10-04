@@ -6,14 +6,16 @@ import logging
 import re
 import secrets
 import threading
+import time
 import uuid
 import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import markdown
 import nh3
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -202,6 +204,7 @@ def admin_import(body: ImportIn, request: Request):
         log.exception("Tóm tắt lỗi khi import %s", url)
     with db.conn() as c:
         if c.execute("SELECT 1 FROM articles WHERE url=?", (url,)).fetchone():
+            _mark_submission_imported(c, url)
             return {"ok": False, "reason": "Bài đã có trong hệ thống."}
         slug = db.make_unique_slug(c, title)
         cur = c.execute(
@@ -212,7 +215,101 @@ def admin_import(body: ImportIn, request: Request):
         article_id = cur.lastrowid
         if tags:
             db.set_article_tags(c, article_id, tags)
+        _mark_submission_imported(c, url)
     return {"ok": True, "words": words}
+
+
+# ---------- Hàng đợi URL (gửi từ mobile, admin xử lý ở PC) ----------
+
+MAX_PENDING_SUBMISSIONS = 500
+_SUBMIT_LIMIT = 5          # số lần gửi tối đa mỗi IP...
+_SUBMIT_WINDOW = 3600      # ...trong khoảng này (giây)
+_submit_hits: dict[str, list[float]] = {}
+_submit_lock = threading.Lock()
+
+
+def queue_key(url: str) -> str:
+    """Khoá chuẩn hoá để chống trùng và khớp URL hàng đợi với URL lúc import (bỏ query,
+    fragment, dấu / cuối)."""
+    return fetcher.clean_url(url).split("#")[0].rstrip("/")
+
+
+def _mark_submission_imported(c, url: str) -> None:
+    c.execute("UPDATE submissions SET status='imported' WHERE url_key=? AND status!='imported'",
+              (queue_key(url),))
+
+
+def _client_ip(request: Request) -> str:
+    # Lấy phần tử CUỐI của X-Forwarded-For: proxy của Railway nối IP thật vào cuối, còn
+    # các giá trị đứng trước có thể do client tự giả mạo.
+    fwd = request.headers.get("x-forwarded-for", "")
+    last = fwd.split(",")[-1].strip()
+    return last or (request.client.host if request.client else "unknown")
+
+
+def _rate_limited(ip: str) -> bool:
+    now = time.monotonic()
+    with _submit_lock:
+        hits = [t for t in _submit_hits.get(ip, []) if now - t < _SUBMIT_WINDOW]
+        limited = len(hits) >= _SUBMIT_LIMIT
+        if not limited:
+            hits.append(now)
+        _submit_hits[ip] = hits
+        if len(_submit_hits) > 10_000:  # dọn IP cũ để dict không phình mãi
+            for k in [k for k, v in _submit_hits.items() if not v or now - v[-1] >= _SUBMIT_WINDOW]:
+                del _submit_hits[k]
+    return limited
+
+
+class SubmissionIn(BaseModel):
+    url: str = Field(min_length=1, max_length=2000)
+    note: str = Field(default="", max_length=300)
+
+
+@app.post("/api/submissions")
+def create_submission(body: SubmissionIn, request: Request, background: BackgroundTasks):
+    url = body.url.strip()
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.netloc or re.search(r"\s", url):
+        raise HTTPException(400, "Link không hợp lệ — cần bắt đầu bằng http:// hoặc https://")
+    # Chủ site (có import token) không bị giới hạn tần suất.
+    if not _valid_import_token(request.headers.get("x-import-token", "")) \
+            and _rate_limited(_client_ip(request)):
+        raise HTTPException(429, "Bạn gửi quá nhiều link, thử lại sau ít phút.")
+    note = body.note.strip()
+    key = queue_key(url)
+    with db.conn() as c:
+        if c.execute("SELECT 1 FROM articles WHERE url IN (?, ?)", (key, key + "/")).fetchone():
+            return {"ok": True, "state": "exists", "message": "Bài này đã có trên site rồi."}
+        pending = c.execute("SELECT COUNT(*) AS n FROM submissions WHERE status='pending'").fetchone()["n"]
+        if pending >= MAX_PENDING_SUBMISSIONS:
+            raise HTTPException(503, "Hàng đợi đang đầy, thử lại sau.")
+        cur = c.execute("INSERT OR IGNORE INTO submissions (url, url_key, note) VALUES (?, ?, ?)",
+                        (url, key, note))
+        if cur.rowcount == 0:
+            return {"ok": True, "state": "duplicate", "message": "Link này đã được gửi trước đó."}
+    background.add_task(emailer.send_submission_notice, url, note)
+    return {"ok": True, "state": "queued", "message": "Đã gửi! Admin sẽ xem và đưa bài vào site."}
+
+
+@app.get("/admin/queue")
+def admin_queue_page(request: Request):
+    with db.conn() as c:
+        pending = c.execute(
+            "SELECT * FROM submissions WHERE status='pending' ORDER BY id ASC").fetchall()
+        done = c.execute(
+            "SELECT * FROM submissions WHERE status!='pending' ORDER BY id DESC LIMIT 50").fetchall()
+    return templates.TemplateResponse(request, "admin_queue.html", {"pending": pending, "done": done})
+
+
+@app.post("/admin/queue/{submission_id}/reject")
+def admin_reject_submission(submission_id: int):
+    with db.conn() as c:
+        cur = c.execute("UPDATE submissions SET status='rejected' WHERE id=? AND status='pending'",
+                        (submission_id,))
+        if cur.rowcount == 0:
+            raise HTTPException(404, "Không tìm thấy link đang chờ")
+    return {"ok": True}
 
 
 # ---------- Yêu cầu cấp token (/submit) ----------
@@ -297,7 +394,12 @@ def fmt_date(iso: str | None) -> str:
     return f"{iso[8:10]}/{iso[5:7]}/{iso[:4]}" if iso else ""
 
 
+def fmt_host(url: str) -> str:
+    return urlsplit(url).netloc.removeprefix("www.")
+
+
 templates.env.filters["date"] = fmt_date
+templates.env.filters["host"] = fmt_host
 
 
 @app.get("/")

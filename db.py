@@ -41,6 +41,19 @@ CREATE TABLE IF NOT EXISTS article_summaries (
     FOREIGN KEY (article_id) REFERENCES articles(id)
 );
 
+-- Hàng đợi URL do người dùng gửi (thường từ mobile, nơi không cài được extension).
+-- Admin mở từng URL ở PC rồi đưa vào bằng extension, hoặc từ chối. Khi bài được import
+-- với URL khớp url_key thì mục tự chuyển sang 'imported'.
+CREATE TABLE IF NOT EXISTS submissions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    url        TEXT NOT NULL,                 -- nguyên văn người dùng gửi, để admin mở
+    url_key    TEXT UNIQUE NOT NULL,          -- URL đã chuẩn hoá, dùng chống trùng + khớp lúc import
+    note       TEXT,
+    status     TEXT DEFAULT 'pending',        -- pending | imported | rejected
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
+
 CREATE TABLE IF NOT EXISTS tags (
     id   INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL
