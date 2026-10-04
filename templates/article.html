@@ -27,6 +27,16 @@
       <span>{{ a.created_at | date }}</span>
       <a href="{{ a.url }}" target="_blank" rel="noopener">Mở bài gốc</a>
     </p>
+    <div class="share-actions">
+      <button type="button" id="share-btn" class="share-action" hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
+        <span>Chia sẻ</span>
+      </button>
+      <button type="button" id="copy-link-btn" class="share-action">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+        <span>Sao chép link</span>
+      </button>
+    </div>
     <p class="hint">Bôi đen một thuật ngữ để xem giải thích.</p>
   </header>
 

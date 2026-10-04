@@ -315,3 +315,13 @@ mark.term {
 .extension-details { margin-top: 2rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
 .extension-details summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
 .extension-details summary:hover { color: var(--ink); }
+
+/* ---------- Chia sẻ bài viết ---------- */
+.share-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0; }
+.share-action {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font: 500 0.8125rem var(--ui); color: var(--muted); background: var(--sheet);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 0.35rem 0.8rem; cursor: pointer;
+}
+.share-action[hidden] { display: none; }
+.share-action:hover { color: var(--ink); border-color: var(--accent); }

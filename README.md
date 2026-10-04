@@ -110,6 +110,15 @@ Bài đã dịch hiện tiêu đề và tóm tắt bằng tiếng Việt, không
 có ghi nguồn (link bài gốc + tác giả) ở cuối trang đọc, cùng dòng nhắc đây là bản dịch
 không chính thức — bản quyền nội dung thuộc về tác giả gốc.
 
+## Chia sẻ bài viết
+
+Trang đọc có hai nút dưới tiêu đề: **Chia sẻ** (dùng Web Share API, mở khung chia sẻ của
+hệ điều hành — chỉ hiện trên thiết bị/trình duyệt hỗ trợ, như iOS Safari, Android
+Chrome) và **Sao chép link** (luôn có; rơi về `execCommand` khi mở qua http thường vì
+clipboard API cần https). Link chia sẻ lấy từ `<link rel="canonical">` nên luôn là
+`https://<domain công khai>/bai-viet/<slug>`; tiêu đề đi kèm theo tab ngôn ngữ đang chọn.
+Nếu chia sẻ lỗi (không phải do người dùng tự đóng) thì tự sao chép link thay thế.
+
 ## Tóm tắt ý chính
 
 Trang đọc có nút icon cố định ở mép phải (đi theo khi cuộn). Bấm vào để Claude tóm

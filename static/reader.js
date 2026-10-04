@@ -201,6 +201,59 @@
   panel.querySelector('.panel-close').addEventListener('click', closePanel);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
 
+  /* ---------- Chia sẻ / sao chép link ---------- */
+  const shareBtn = document.getElementById('share-btn');
+  const copyBtn = document.getElementById('copy-link-btn');
+
+  // Ưu tiên canonical (đã là https + domain công khai); không có thì bỏ query/hash.
+  const shareUrl = () =>
+    document.querySelector('link[rel="canonical"]')?.href || (location.origin + location.pathname);
+  const shareTitle = () => [...document.querySelectorAll('.reader-head h1 span')]
+    .find((s) => getComputedStyle(s).display !== 'none')?.textContent.trim() || document.title;
+
+  const flash = (btn, text) => {
+    const label = btn.querySelector('span');
+    const original = btn.dataset.label || (btn.dataset.label = label.textContent);
+    label.textContent = text;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { label.textContent = original; }, 1800);
+  };
+
+  // clipboard API cần https/localhost; trên http (vd. mở qua LAN) rơi về execCommand.
+  const copyText = async (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      try { await navigator.clipboard.writeText(text); return true; } catch { /* thử cách dưới */ }
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.append(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { /* bỏ qua */ }
+    ta.remove();
+    return ok;
+  };
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      flash(copyBtn, (await copyText(shareUrl())) ? 'Đã sao chép ✓' : 'Không sao chép được');
+    });
+  }
+
+  if (shareBtn && navigator.share) {
+    shareBtn.hidden = false;
+    shareBtn.addEventListener('click', async () => {
+      try {
+        await navigator.share({ title: shareTitle(), url: shareUrl() });
+      } catch (err) {
+        if (err.name === 'AbortError') return; // người dùng tự đóng khung chia sẻ
+        flash(shareBtn, (await copyText(shareUrl())) ? 'Đã sao chép link ✓' : 'Không chia sẻ được');
+      }
+    });
+  }
+
   /* ---------- Nút lên đầu trang ---------- */
   const topBtn = document.getElementById('back-to-top');
   if (topBtn) {
