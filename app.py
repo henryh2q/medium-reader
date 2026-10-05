@@ -459,7 +459,8 @@ def index(request: Request, tag: str | None = None, category: str | None = None,
                 kept.append(r)
                 if snippet:
                     snippets[r["id"]] = snippet
-        rows = kept
+        # rows đã sắp mới nhất trước; sort ổn định nên cùng điểm vẫn giữ thứ tự theo ngày
+        rows = sorted(kept, key=lambda r: -search.score_article(r, tags_by_article[r["id"]], terms))
 
     with _translating_lock:
         translating_ids = set(_translating)

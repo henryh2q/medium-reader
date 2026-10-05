@@ -126,8 +126,11 @@ trong [search.py](search.py):
   đoạn trích ngắn có tô vàng. Mọi văn bản được escape trước khi tô nên không chèn được HTML.
 - Kết hợp được với bộ lọc category (pill giữ nguyên từ khoá). Trang kết quả tìm kiếm có
   `noindex` để công cụ tìm kiếm không lập chỉ mục các URL `?q=`.
-- Kết quả giữ thứ tự mới nhất trước (không xếp hạng theo độ liên quan); chỉ duyệt trong 200
-  bài mới nhất như danh sách chính.
+- **Xếp hạng:** mỗi từ khoá được tính điểm theo chỗ khớp tốt nhất của nó — tiêu đề 10, tag 8,
+  tóm tắt/tác giả 4, chỉ trong nội dung 1 — rồi cộng lại; điểm cao lên trước, cùng điểm thì bài
+  mới hơn trước. Nhờ vậy bài có từ khoá ở tiêu đề/tag luôn nằm trên bài chỉ nhắc thoáng trong
+  nội dung. Không có từ khoá thì danh sách vẫn theo ngày. Chỉ duyệt trong 200 bài mới nhất
+  như danh sách chính.
 
 ## Chia sẻ bài viết
 

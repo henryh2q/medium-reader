@@ -138,3 +138,25 @@ def article_view(row, tags: list[str], terms: list[str]):
             if snippet:
                 return True, snippet
     return True, None
+
+
+# Điểm cho mỗi từ khoá theo chỗ khớp TỐT NHẤT của nó; bài khớp tiêu đề/tag xếp lên trước,
+# bài chỉ khớp trong nội dung xếp sau.
+_W_TITLE, _W_TAG, _W_META, _W_BODY = 10, 8, 4, 1
+
+
+def score_article(row, tags: list[str], terms: list[str]) -> int:
+    titles = fold("\n".join(filter(None, [row["title"], row["title_vi"]])))
+    tag_text = fold("\n".join(tags))
+    meta = fold("\n".join(filter(None, [row["author"], row["summary_en"], row["summary_vi"]])))
+    total = 0
+    for t in terms:
+        if t in titles:
+            total += _W_TITLE
+        elif t in tag_text:
+            total += _W_TAG
+        elif t in meta:
+            total += _W_META
+        else:
+            total += _W_BODY
+    return total
