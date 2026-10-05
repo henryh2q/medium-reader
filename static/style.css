@@ -325,3 +325,20 @@ mark.term {
 }
 .share-action[hidden] { display: none; }
 .share-action:hover { color: var(--ink); border-color: var(--accent); }
+
+/* ---------- Tìm kiếm ở trang chủ ---------- */
+.search-form { display: flex; gap: 0.4rem; margin: 0 0 1rem; }
+.search-form input[type="search"] {
+  flex: 1; min-width: 0; font: inherit; font-size: 1rem; color: var(--ink);
+  background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; padding: 0.55rem 1rem;
+  -webkit-appearance: none; appearance: none;
+}
+.search-form input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.search-form button {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 2.6rem; color: var(--paper); background: var(--ink); border: 0; border-radius: 999px; cursor: pointer;
+}
+.search-form button:hover { background: var(--accent); }
+.search-summary { color: var(--muted); font-size: 0.875rem; margin: -0.5rem 0 1.25rem; }
+mark.hit { background: var(--marker); color: inherit; border-radius: 2px; padding: 0 0.1em; }
+.snippet { color: var(--muted); font-size: 0.85rem; font-style: italic; margin: 0.4rem 0 0; line-height: 1.5; }

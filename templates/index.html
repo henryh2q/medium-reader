@@ -1,24 +1,44 @@
 {% extends "base.html" %}
+{% block meta_robots %}{% if q %}<meta name="robots" content="noindex,follow">{% endif %}{% endblock %}
 {% block content %}
 <div id="progress-bar" class="progress-bar" {% if not translating_ids %}hidden{% endif %}><div class="progress-bar-fill"></div></div>
 <main class="shelf">
   <header class="shelf-head">
     <h1>Đọc gì hôm nay</h1>
     <p>Kho bài kỹ thuật bạn tự chọn, dịch sẵn sang tiếng Việt để đọc khi rảnh.</p>
+    <form class="search-form" action="/" method="get" role="search">
+      {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+      {% if active_tag %}<input type="hidden" name="tag" value="{{ active_tag }}">{% endif %}
+      <input type="search" name="q" value="{{ q }}" placeholder="Tìm bài viết theo từ khoá…" maxlength="100"
+             autocomplete="off" enterkeyhint="search" aria-label="Tìm bài viết">
+      <button type="submit" aria-label="Tìm kiếm">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      </button>
+    </form>
     {% if all_categories %}
     <nav class="topic-filter" aria-label="Lọc theo chủ đề">
-      <a href="/" class="topic-pill{% if not active_category %} active{% endif %}">Tất cả</a>
+      <a href="{{ home_url(q=q) }}" class="topic-pill{% if not active_category %} active{% endif %}">Tất cả</a>
       {% for cat in all_categories %}
-      <a href="/?category={{ cat | urlencode }}" class="topic-pill{% if cat == active_category %} active{% endif %}">{{ cat }}</a>
+      <a href="{{ home_url(category=cat, q=q) }}" class="topic-pill{% if cat == active_category %} active{% endif %}">{{ cat }}</a>
       {% endfor %}
     </nav>
+    {% endif %}
+    {% if q %}
+    <p class="search-summary">
+      {{ articles | length }} bài khớp “<b>{{ q }}</b>”
+      · <a href="{{ home_url(category=active_category, tag=active_tag) }}">Xoá tìm kiếm</a>
+    </p>
     {% endif %}
   </header>
 
   {% if not articles %}
   <section class="empty">
+    {% if q %}
+    <p>Không có bài nào khớp “{{ q }}”. Thử từ khoá khác, ít từ hơn, hoặc không cần gõ dấu.</p>
+    {% else %}
     <p>Chưa có bài nào. Dùng extension trong <code>extension/</code> để đưa bài bạn
       đang đọc vào app.</p>
+    {% endif %}
   </section>
   {% endif %}
 
@@ -30,28 +50,29 @@
       <div>
         <h2>
           {% if a.id in translating_ids %}
-            <span>{{ a.title }}</span>
+            <span>{{ a.title | highlight(terms) }}</span>
             <span class="spinner" title="Đang dịch…" aria-label="Đang dịch…"></span>
           {% elif a.status == 'translated' %}
-            <a href="/bai-viet/{{ a.slug }}">{{ a.title_vi or a.title }}</a>
+            <a href="/bai-viet/{{ a.slug }}">{{ (a.title_vi or a.title) | highlight(terms) }}</a>
           {% else %}
-            <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
+            <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title | highlight(terms) }}</a>
             <button type="button" class="translate-one" data-id="{{ a.id }}" title="Dịch bài này" aria-label="Dịch bài này">{% include "_translate_icon.html" %}</button>
           {% endif %}
         </h2>
         <p class="meta">
-          {% if a.author %}<span>{{ a.author }}</span>{% endif %}
+          {% if a.author %}<span>{{ a.author | highlight(terms) }}</span>{% endif %}
           <span>{{ a.created_at | date }}</span>
           {% if a.id in translating_ids %}<span class="tag">Đang dịch…</span>
           {% elif a.status == 'failed' %}<span class="tag tag-err">Dịch lỗi</span>
           {% endif %}
         </p>
         {% set desc = a.summary_vi if a.status == 'translated' else a.summary_en %}
-        {% if desc %}<p class="desc">{{ desc }}</p>{% endif %}
+        {% if desc %}<p class="desc">{{ desc | highlight(terms) }}</p>{% endif %}
+        {% if snippets.get(a.id) %}<p class="snippet">{{ snippets[a.id] }}</p>{% endif %}
         {% set article_tags = tags_by_article.get(a.id, []) %}
         {% if article_tags %}
         <p class="topics">
-          {% for t in article_tags %}<a href="/?tag={{ t | urlencode }}" class="topic-pill-sm">{{ t }}</a>{% endfor %}
+          {% for t in article_tags %}<a href="/?tag={{ t | urlencode }}" class="topic-pill-sm">{{ t | highlight(terms) }}</a>{% endfor %}
         </p>
         {% endif %}
       </div>

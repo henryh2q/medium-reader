@@ -11,7 +11,7 @@ import uuid
 import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlencode, urlsplit
 
 import markdown
 import nh3
@@ -27,6 +27,7 @@ import db
 import emailer
 import fetcher
 import llm
+import search
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("app")
@@ -398,12 +399,21 @@ def fmt_host(url: str) -> str:
     return urlsplit(url).netloc.removeprefix("www.")
 
 
+def home_url(category: str | None = None, tag: str | None = None, q: str | None = None) -> str:
+    """URL trang chủ kèm các bộ lọc đang chọn (bỏ giá trị rỗng)."""
+    params = {k: v for k, v in (("category", category), ("tag", tag), ("q", q)) if v}
+    return "/?" + urlencode(params) if params else "/"
+
+
 templates.env.filters["date"] = fmt_date
+templates.env.filters["highlight"] = search.highlight
+templates.env.globals["home_url"] = home_url
 templates.env.filters["host"] = fmt_host
 
 
 @app.get("/")
-def index(request: Request, tag: str | None = None, category: str | None = None):
+def index(request: Request, tag: str | None = None, category: str | None = None,
+          q: str | None = None):
     with db.conn() as c:
         if tag:
             rows = c.execute(
@@ -438,6 +448,19 @@ def index(request: Request, tag: str | None = None, category: str | None = None)
     if category:
         rows = [r for r in rows if category in categories_by_article.get(r["id"], [])]
 
+    q = (q or "").strip()[:search.MAX_QUERY_LEN]
+    terms = search.parse_terms(q)
+    snippets: dict[int, object] = {}
+    if terms:
+        kept = []
+        for r in rows:
+            ok, snippet = search.article_view(r, tags_by_article[r["id"]], terms)
+            if ok:
+                kept.append(r)
+                if snippet:
+                    snippets[r["id"]] = snippet
+        rows = kept
+
     with _translating_lock:
         translating_ids = set(_translating)
     return templates.TemplateResponse(request, "index.html", {
@@ -449,6 +472,9 @@ def index(request: Request, tag: str | None = None, category: str | None = None)
         "all_tags": all_tags,
         "active_tag": tag,
         "active_category": category,
+        "q": q,
+        "terms": terms,
+        "snippets": snippets,
     })
 
 

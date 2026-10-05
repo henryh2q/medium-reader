@@ -25,6 +25,7 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | File | Vai trò |
 |---|---|
 | `config.py` | Model dùng để dịch/giải thích, token/admin/email config |
+| `search.py` | Tìm kiếm trang chủ: chuẩn hoá bỏ dấu, lọc AND, tô vàng, đoạn trích |
 | `categories.py` | Gộp tag chi tiết về 2 category chính hiển thị trên trang chủ (AI, System Design) |
 | `fetcher.py` | HTML (từ extension) -> Markdown |
 | `llm.py` | Tóm tắt + tag, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
@@ -109,6 +110,24 @@ Bài đã dịch hiện tiêu đề và tóm tắt bằng tiếng Việt, không
 "đã dịch" thể hiện qua chính tiêu đề tiếng Việt, không cần nhãn riêng). Mỗi bài đã dịch
 có ghi nguồn (link bài gốc + tác giả) ở cuối trang đọc, cùng dòng nhắc đây là bản dịch
 không chính thức — bản quyền nội dung thuộc về tác giả gốc.
+
+## Tìm kiếm
+
+Ô tìm kiếm ở đầu trang chủ lọc bài theo từ khoá (`GET /?q=<từ khoá>`), xử lý phía server
+trong [search.py](search.py):
+
+- Khớp trong tiêu đề (cả tiếng Việt lẫn tiếng Anh), tóm tắt, tác giả, tag và **toàn bộ nội
+  dung bài** (cả hai bản dịch).
+- **Không phân biệt hoa/thường và dấu tiếng Việt**: gõ `thiet ke` vẫn ra "thiết kế".
+- Nhiều từ khoá = **AND** (bài phải chứa đủ mọi từ, ở bất kỳ trường nào), tối đa 6 từ,
+  câu tìm tối đa 100 ký tự.
+- Chỗ khớp được tô vàng (`<mark class="hit">`) ở tiêu đề, tóm tắt, tác giả và tag. Nếu từ
+  khoá chỉ khớp ở nơi không đang hiển thị (nội dung bài, bản tiếng Anh) thì hiện thêm một
+  đoạn trích ngắn có tô vàng. Mọi văn bản được escape trước khi tô nên không chèn được HTML.
+- Kết hợp được với bộ lọc category (pill giữ nguyên từ khoá). Trang kết quả tìm kiếm có
+  `noindex` để công cụ tìm kiếm không lập chỉ mục các URL `?q=`.
+- Kết quả giữ thứ tự mới nhất trước (không xếp hạng theo độ liên quan); chỉ duyệt trong 200
+  bài mới nhất như danh sách chính.
 
 ## Chia sẻ bài viết
 
