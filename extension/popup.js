@@ -106,21 +106,59 @@ sendBtn.addEventListener('click', async () => {
   }
 
   setStatus('Đang gửi về app…');
+  const payload = { url: tab.url, title: result.title, author: result.author, html: result.html, tags: result.tags };
+  const showResult = (resp) => {
+    if (resp && resp.ok) {
+      setStatus(resp.data.ok ? `Đã thêm (${resp.data.words} từ).` : resp.data.reason, resp.data.ok ? 'ok' : 'err');
+    } else {
+      setStatus(`Lỗi: ${resp ? resp.error : 'không rõ'}`, 'err');
+    }
+  };
+  // Ưu tiên gửi qua service worker (không bị huỷ nếu popup đóng giữa chừng). Service worker
+  // có thể hỏng sau khi sửa file extension mà chưa Reload ở chrome://extensions — lúc đó
+  // hoặc báo "Receiving end does not exist", hoặc treo im lặng — nên "gõ cửa" trước, không
+  // thấy trả lời thì tự gửi thẳng từ popup (giữ popup mở tới khi xong).
+  if (!(await swAlive())) {
+    setStatus('Đang gửi trực tiếp…');
+    showResult(await importDirect(appOrigin.origin, token, payload));
+    return;
+  }
   chrome.runtime.sendMessage(
-    {
-      type: 'import',
-      appUrl: appOrigin.origin,
-      token,
-      payload: { url: tab.url, title: result.title, author: result.author, html: result.html, tags: result.tags },
-    },
-    (resp) => {
-      if (chrome.runtime.lastError) {
-        setStatus(`Lỗi: ${chrome.runtime.lastError.message}`, 'err');
-      } else if (resp && resp.ok) {
-        setStatus(resp.data.ok ? `Đã thêm (${resp.data.words} từ).` : resp.data.reason, resp.data.ok ? 'ok' : 'err');
-      } else {
-        setStatus(`Lỗi: ${resp ? resp.error : 'không rõ'}`, 'err');
-      }
+    { type: 'import', appUrl: appOrigin.origin, token, payload },
+    async (resp) => {
+      if (!chrome.runtime.lastError) return showResult(resp);
+      setStatus('Đang gửi trực tiếp…');
+      showResult(await importDirect(appOrigin.origin, token, payload));
     },
   );
 });
+
+function swAlive() {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), 1500);
+    chrome.runtime.sendMessage({ type: 'ping' }, (resp) => {
+      clearTimeout(timer);
+      resolve(!chrome.runtime.lastError && !!resp && resp.pong === true);
+    });
+  });
+}
+
+async function importDirect(appUrl, token, payload) {
+  try {
+    const res = await fetch(`${appUrl}/admin/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Import-Token': token },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = Array.isArray(data.detail)
+        ? data.detail.map((d) => `${(d.loc || []).slice(1).join('.')}: ${d.msg}`).join('; ')
+        : data.detail;
+      return { ok: false, error: detail || `HTTP ${res.status}` };
+    }
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}

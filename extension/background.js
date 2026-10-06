@@ -1,4 +1,8 @@
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'ping') {
+    sendResponse({ pong: true });
+    return;
+  }
   if (msg.type !== 'import') return;
   (async () => {
     try {
