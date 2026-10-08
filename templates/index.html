@@ -50,12 +50,12 @@
       <div>
         <h2>
           {% if a.id in translating_ids %}
-            <span>{{ a.title | highlight(terms) }}</span>
+            <a href="/bai-viet/{{ a.slug }}">{{ a.title | highlight(terms) }}</a>
             <span class="spinner" title="Đang dịch…" aria-label="Đang dịch…"></span>
           {% elif a.status == 'translated' %}
             <a href="/bai-viet/{{ a.slug }}">{{ (a.title_vi or a.title) | highlight(terms) }}</a>
           {% else %}
-            <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title | highlight(terms) }}</a>
+            <a href="/bai-viet/{{ a.slug }}">{{ a.title | highlight(terms) }}</a>
             <button type="button" class="translate-one" data-id="{{ a.id }}" title="Dịch bài này" aria-label="Dịch bài này">{% include "_translate_icon.html" %}</button>
           {% endif %}
         </h2>

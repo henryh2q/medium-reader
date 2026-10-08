@@ -70,6 +70,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   border-top: 1px solid var(--rule);
 }
 .entry[data-status="translating"] { opacity: 0.5; pointer-events: none; }
+.entry[data-status="translating"] h2 a { pointer-events: auto; }
 .entry h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; }
 .entry h2 a { color: var(--ink); text-decoration: none; }
 .entry h2 a:hover { color: var(--accent); }
@@ -342,3 +343,21 @@ mark.term {
 .search-summary { color: var(--muted); font-size: 0.875rem; margin: -0.5rem 0 1.25rem; }
 mark.hit { background: var(--marker); color: inherit; border-radius: 2px; padding: 0 0.1em; }
 .snippet { color: var(--muted); font-size: 0.85rem; font-style: italic; margin: 0.4rem 0 0; line-height: 1.5; }
+
+/* ---------- Nút dịch ở trang đọc bài chưa dịch ---------- */
+.translate-bar { margin: 1rem 0 0; }
+.translate-cta {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font: 600 0.875rem var(--ui); color: var(--paper); background: var(--ink);
+  border: 0; border-radius: 999px; padding: 0.5rem 1rem; cursor: pointer;
+}
+.translate-cta .translate-icon { background: #fff; border-radius: 4px; padding: 1px; box-sizing: content-box; }
+.translate-cta:hover { background: var(--accent); }
+.translate-cta:disabled { opacity: 0.6; cursor: default; }
+.translate-cta[hidden], .translate-status[hidden], .translate-error[hidden] { display: none; }
+.translate-status { display: flex; align-items: center; gap: 0.6rem; margin: 0; font-size: 0.875rem; color: var(--muted); }
+.translate-status .spinner { margin-left: 0; }
+.translate-error { margin: 0.6rem 0 0; font-size: 0.8125rem; color: #b3261e; }
+.translated-body { padding: 1.1rem; }
+.translated-body p { margin: 0; }
+.translated-body .batch-submit { margin: 1rem 0 0; width: 100%; }

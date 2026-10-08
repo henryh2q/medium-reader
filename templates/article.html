@@ -5,28 +5,50 @@
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ a.title_vi or a.title }}{% endblock %}
 {% block og_description %}{{ desc }}{% endblock %}
-{% block body_attrs %}data-article-id="{{ a.id }}" data-lang="vi"{% endblock %}
+{# Bài chưa dịch: chỉ có bản gốc tiếng Anh (không có tab VN/EN), kèm nút Dịch. #}
+{% block meta_robots %}{% if not translated %}<meta name="robots" content="noindex">{% endif %}{% endblock %}
+{% block body_attrs %}data-article-id="{{ a.id }}" data-lang="{{ 'vi' if translated else 'en' }}" data-translated="{{ 'true' if translated else 'false' }}"{% endblock %}
 {% block content %}
+{% if not translated %}<div id="progress-bar" class="progress-bar" hidden><div class="progress-bar-fill"></div></div>{% endif %}
 <main class="reader">
   <nav class="reader-nav">
     <a href="/">← Về trang chủ</a>
+    {% if translated %}
     <div class="lang-switch" role="group" aria-label="Ngôn ngữ">
       <button type="button" data-set-lang="vi" aria-pressed="true">Tiếng Việt</button>
       <button type="button" data-set-lang="en" aria-pressed="false">English</button>
     </div>
+    {% endif %}
   </nav>
 
   <header class="reader-head">
+    {% if translated %}
     <h1>
       <span class="lang-vi">{{ a.title_vi or a.title }}</span>
       <span class="lang-en" lang="en">{{ a.title }}</span>
     </h1>
     <p class="orig lang-vi">{{ a.title }}</p>
+    {% else %}
+    <h1 lang="en">{{ a.title }}</h1>
+    {% endif %}
     <p class="meta">
-      <span>{{ a.author }}</span>
+      {% if a.author %}<span>{{ a.author }}</span>{% endif %}
       <span>{{ a.created_at | date }}</span>
       <a href="{{ a.url }}" target="_blank" rel="noopener">Mở bài gốc</a>
     </p>
+    {% if not translated %}
+    <div class="translate-bar" id="translate-bar" data-id="{{ a.id }}" data-translating="{{ 'true' if translating else 'false' }}">
+      <button type="button" id="translate-btn" class="translate-cta">
+        {% include "_translate_icon.html" %}
+        <span>{% if a.status == 'failed' %}Dịch lỗi — thử dịch lại{% else %}Dịch sang tiếng Việt{% endif %}</span>
+      </button>
+      <p id="translate-status" class="translate-status" role="status" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span>Đang dịch… bạn vẫn có thể đọc bản tiếng Anh bên dưới.</span>
+      </p>
+      <p id="translate-error" class="translate-error" role="alert" hidden></p>
+    </div>
+    {% endif %}
     <div class="share-actions">
       <button type="button" id="share-btn" class="share-action" hidden>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
@@ -41,14 +63,15 @@
   </header>
 
   <article class="prose" id="article-body">
-    <div class="lang-vi">{{ html_vi | safe }}</div>
+    {% if translated %}<div class="lang-vi">{{ html_vi | safe }}</div>{% endif %}
     <div class="lang-en" lang="en">{{ html_en | safe }}</div>
   </article>
 
   <footer class="attribution">
     Nguồn: <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title }}</a>
-    {% if a.author %}bởi {{ a.author }}{% endif %} — bản dịch không chính thức, chỉ dùng
-    cá nhân. Bản quyền nội dung thuộc về tác giả gốc.
+    {% if a.author %}bởi {{ a.author }}{% endif %} —
+    {% if translated %}bản dịch không chính thức, chỉ dùng cá nhân.{% else %}bản gốc tiếng Anh, chỉ dùng cá nhân.{% endif %}
+    Bản quyền nội dung thuộc về tác giả gốc.
   </footer>
 </main>
 
@@ -71,5 +94,20 @@
   <div class="panel-body"></div>
 </aside>
 
+{% if not translated %}
+<div id="translated-modal" class="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-bar">
+      <span>Đã dịch xong</span>
+      <button type="button" id="translated-later" class="panel-close" aria-label="Để sau">×</button>
+    </div>
+    <div class="translated-body">
+      <p>Bài viết đã được dịch sang tiếng Việt. Tải lại trang để đọc bản dịch.</p>
+      <button type="button" id="translated-reload" class="batch-submit">Tải lại trang</button>
+    </div>
+  </div>
+</div>
+<script src="/static/article_translate.js"></script>
+{% endif %}
 <script src="/static/reader.js"></script>
 {% endblock %}

@@ -580,9 +580,14 @@ def article(request: Request, slug: str):
         a = c.execute("SELECT * FROM articles WHERE slug=?", (slug,)).fetchone()
     if not a:
         raise HTTPException(404, "Không tìm thấy bài viết")
+    translated = a["status"] == "translated"
+    with _translating_lock:
+        translating = a["id"] in _translating
     return templates.TemplateResponse(request, "article.html", {
         "a": a,
-        "html_vi": render_md(a["content_vi"]),
+        "translated": translated,
+        "translating": translating,
+        "html_vi": render_md(a["content_vi"]) if translated else "",
         "html_en": render_md(a["content_en"]),
     })
 

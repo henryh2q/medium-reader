@@ -31,6 +31,7 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | `llm.py` | Tóm tắt + tag, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
 | `emailer.py` | Gửi email thông báo (yêu cầu token, feedback) qua Resend API |
 | `app.py` | FastAPI: danh sách bài, trang đọc, import/dịch, `/submit` + hàng đợi link `/admin/queue` + `/admin/requests` (duyệt token), feedback, SEO (`/sitemap.xml`, `/robots.txt`) |
+| `static/article_translate.js` | Nút "Dịch sang tiếng Việt" ở trang đọc bài chưa dịch: trạng thái đang dịch, polling, popup tải lại |
 | `static/translate.js` | Icon dịch cạnh từng bài + polling `GET /api/status` để tự cập nhật, không cần reload |
 | `static/submit.js` | Luồng yêu cầu token: tạo request, polling trạng thái, resume qua `?request_id=` |
 | `static/submit_url.js` | Ô "Gửi link bài viết" ở `/submit` (hàng đợi URL), điền sẵn từ `?url=` |
@@ -94,7 +95,20 @@ Chrome/Edge desktop.
 
 ## Dịch bài
 
-Bấm icon ⇄ cạnh tiêu đề bài trong danh sách để dịch từng bài.
+Bấm icon ⇄ cạnh tiêu đề bài trong danh sách để dịch từng bài, hoặc dịch ngay trong trang đọc
+(xem dưới).
+
+**Bài chưa dịch:** bấm tiêu đề ở trang chủ sẽ mở **trang đọc nội bộ** (`/bai-viet/<slug>`),
+không nhảy sang Medium — vì bài member-only thường người đọc không xem được ở nguồn. Trang
+này chỉ có bản tiếng Anh (không có tab VN/EN), kèm nút **Dịch sang tiếng Việt**. Bấm nút:
+hiện trạng thái "Đang dịch…" + thanh tiến độ vô định, bạn vẫn đọc bản tiếng Anh được; xong
+thì hiện popup **Đã dịch xong** với nút **Tải lại trang** (hoặc đóng popup, nút dịch đổi thành
+"Đã dịch xong — tải lại trang"). Tải lại là thấy bản dịch với đủ tab Tiếng Việt/English.
+`static/article_translate.js` polling `GET /api/status` mỗi 3 giây. Nếu dịch lỗi (hoặc server
+khởi động lại giữa chừng làm mất tiến trình) thì hiện thông báo kèm nút "Thử dịch lại". Mở
+trang đúng lúc bài đang được dịch thì trạng thái "Đang dịch" hiện ngay.
+Trang bài chưa dịch có `noindex` và không nằm trong sitemap; lưu ý trang này công khai, ai
+có link cũng đọc được bản gốc tiếng Anh.
 
 (Tính năng "Dịch hàng loạt" tạm ẩn, nhường chỗ nút "Gửi bài viết" — code còn nguyên
 trong `templates/index.html`/`static/translate.js`, comment giải thích cách bật lại.)

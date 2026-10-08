@@ -19,7 +19,10 @@
   };
   document.querySelectorAll('[data-set-lang]').forEach((b) =>
     b.addEventListener('click', () => setLang(b.dataset.setLang)));
-  try { const saved = localStorage.getItem('reader-lang'); if (saved) setLang(saved); } catch {}
+  // Bài chưa dịch chỉ có bản tiếng Anh: không khôi phục lang đã lưu, kẻo ẩn mất nội dung.
+  if (document.body.dataset.translated !== 'false') {
+    try { const saved = localStorage.getItem('reader-lang'); if (saved) setLang(saved); } catch {}
+  }
 
   /* ---------- Bắt vùng chọn ---------- */
   const readSelection = () => {
