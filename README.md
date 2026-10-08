@@ -100,12 +100,13 @@ Bấm icon ⇄ cạnh tiêu đề bài trong danh sách để dịch từng bài
 
 **Bài chưa dịch:** bấm tiêu đề ở trang chủ sẽ mở **trang đọc nội bộ** (`/bai-viet/<slug>`),
 không nhảy sang Medium — vì bài member-only thường người đọc không xem được ở nguồn. Trang
-này chỉ có bản tiếng Anh (không có tab VN/EN), kèm nút **Dịch sang tiếng Việt**. Bấm nút:
-hiện trạng thái "Đang dịch…" + thanh tiến độ vô định, bạn vẫn đọc bản tiếng Anh được; xong
-thì hiện popup **Đã dịch xong** với nút **Tải lại trang** (hoặc đóng popup, nút dịch đổi thành
-"Đã dịch xong — tải lại trang"). Tải lại là thấy bản dịch với đủ tab Tiếng Việt/English.
+này chỉ có bản tiếng Anh (không có tab VN/EN), kèm **icon dịch** (giống ở trang chủ) ngay sau
+tiêu đề. Bấm icon: hiện trạng thái "Đang dịch…" + thanh tiến độ vô định, bạn vẫn đọc bản
+tiếng Anh được; xong thì hiện popup **Đã dịch xong** với nút **Tải lại trang** (hoặc đóng popup,
+còn lại nút "Đã dịch xong — tải lại trang" dưới dòng thông tin). Tải lại là thấy bản dịch với đủ
+tab Tiếng Việt/English.
 `static/article_translate.js` polling `GET /api/status` mỗi 3 giây. Nếu dịch lỗi (hoặc server
-khởi động lại giữa chừng làm mất tiến trình) thì hiện thông báo kèm nút "Thử dịch lại". Mở
+khởi động lại giữa chừng làm mất tiến trình) thì hiện thông báo lỗi và icon dịch quay lại (tooltip "Thử dịch lại"). Mở
 trang đúng lúc bài đang được dịch thì trạng thái "Đang dịch" hiện ngay.
 Trang bài chưa dịch có `noindex` và không nằm trong sitemap; lưu ý trang này công khai, ai
 có link cũng đọc được bản gốc tiếng Anh.

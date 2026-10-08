@@ -29,7 +29,12 @@
     </h1>
     <p class="orig lang-vi">{{ a.title }}</p>
     {% else %}
-    <h1 lang="en">{{ a.title }}</h1>
+    {# Nút dịch dạng icon nằm ngay sau tiêu đề như ở trang chủ; h1 để inline cho nút nối liền chữ cuối. #}
+    <div class="title-row">
+      <h1 lang="en">{{ a.title }}</h1><button type="button" id="translate-btn" class="translate-one translate-head"
+        title="{% if a.status == 'failed' %}Dịch lỗi lần trước — bấm để thử dịch lại{% else %}Dịch sang tiếng Việt{% endif %}"
+        aria-label="{% if a.status == 'failed' %}Thử dịch lại{% else %}Dịch sang tiếng Việt{% endif %}">{% include "_translate_icon.html" %}</button>
+    </div>
     {% endif %}
     <p class="meta">
       {% if a.author %}<span>{{ a.author }}</span>{% endif %}
@@ -38,15 +43,12 @@
     </p>
     {% if not translated %}
     <div class="translate-bar" id="translate-bar" data-id="{{ a.id }}" data-translating="{{ 'true' if translating else 'false' }}">
-      <button type="button" id="translate-btn" class="translate-cta">
-        {% include "_translate_icon.html" %}
-        <span>{% if a.status == 'failed' %}Dịch lỗi — thử dịch lại{% else %}Dịch sang tiếng Việt{% endif %}</span>
-      </button>
       <p id="translate-status" class="translate-status" role="status" hidden>
         <span class="spinner" aria-hidden="true"></span>
         <span>Đang dịch… bạn vẫn có thể đọc bản tiếng Anh bên dưới.</span>
       </p>
       <p id="translate-error" class="translate-error" role="alert" hidden></p>
+      <button type="button" id="translate-reload" class="translate-reload" hidden>Đã dịch xong — tải lại trang</button>
     </div>
     {% endif %}
     <div class="share-actions">

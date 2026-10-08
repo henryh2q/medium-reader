@@ -5,12 +5,11 @@
   const POLL_MS = 3000;
   const id = Number(bar.dataset.id);
   const btn = document.getElementById('translate-btn');
-  const btnLabel = btn.querySelector('span');
+  const reloadBtn = document.getElementById('translate-reload');
   const statusEl = document.getElementById('translate-status');
   const errorEl = document.getElementById('translate-error');
   const progress = document.getElementById('progress-bar');
   const modal = document.getElementById('translated-modal');
-  let finished = false;
 
   const setBusy = (busy) => {
     btn.hidden = busy;
@@ -19,19 +18,23 @@
     if (busy) errorEl.hidden = true;
   };
 
+  const setBtnLabel = (text) => {
+    btn.title = text;
+    btn.setAttribute('aria-label', text);
+  };
+
   const showFailed = (message) => {
     setBusy(false);
     btn.disabled = false;
-    btnLabel.textContent = 'Thử dịch lại';
+    setBtnLabel('Thử dịch lại');
     errorEl.textContent = message;
     errorEl.hidden = false;
   };
 
   const showDone = () => {
-    finished = true;
     setBusy(false);
-    btn.disabled = false;
-    btnLabel.textContent = 'Đã dịch xong — tải lại trang';
+    btn.hidden = true;            // đã dịch xong, không cần icon dịch nữa
+    reloadBtn.hidden = false;     // còn lại lối tắt tải lại trang nếu người dùng đóng popup
     modal.hidden = false;
   };
 
@@ -54,7 +57,6 @@
   };
 
   btn.addEventListener('click', async () => {
-    if (finished) return location.reload();
     btn.disabled = true;
     try {
       const res = await fetch(`/admin/translate/${id}`, { method: 'POST' });
@@ -68,6 +70,7 @@
     setTimeout(poll, POLL_MS);
   });
 
+  reloadBtn.addEventListener('click', () => location.reload());
   document.getElementById('translated-reload').addEventListener('click', () => location.reload());
   document.getElementById('translated-later').addEventListener('click', () => { modal.hidden = true; });
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.hidden = true; });
