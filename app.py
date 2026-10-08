@@ -387,7 +387,8 @@ def submit_feedback(body: FeedbackIn):
 
 
 def render_md(text: str | None) -> str:
-    html = markdown.markdown(text or "", extensions=["fenced_code", "tables"])
+    # Bài import trước đây còn dính nhãn "Member-only story" trong DB: lọc lúc hiển thị.
+    html = markdown.markdown(fetcher.strip_ui_noise(text), extensions=["fenced_code", "tables"])
     return nh3.clean(html)  # nội dung đến từ bên ngoài => luôn sanitize
 
 

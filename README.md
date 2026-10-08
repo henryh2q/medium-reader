@@ -86,6 +86,11 @@ cuối). Hoặc bấm **Từ chối**.
 - Link do người lạ gửi có thể độc hại: trang admin hiện rõ tên miền, link mở với
   `rel="noopener noreferrer"`, nhưng vẫn nên xem kỹ trước khi mở.
 
+Nhãn giao diện Medium lọt vào nội dung (dòng chỉ gồm "Member-only story", hoặc "Chỉ dành
+cho thành viên" ở bản dịch) được bỏ ở hai chỗ: lúc import (`fetcher.strip_ui_noise`, nên bài
+mới không bị đưa cho Claude dịch/tóm tắt) và lúc hiển thị trang đọc (nên bài import trước đây
+cũng sạch mà không phải sửa DB). Chỉ xoá khi cả dòng đúng là nhãn đó.
+
 Bài hiện ngay trên trang chủ kèm tóm tắt tiếng Anh và 2-3 tag chủ đề (tự sinh lúc
 import — ưu tiên tag thật lấy từ trang nếu extension tìm thấy, vd. tag Medium).
 
