@@ -593,6 +593,37 @@ def _translate_one(article_id: int) -> None:
             _translating.discard(article_id)
 
 
+def _backfill_summaries(article_ids: list[int]) -> None:
+    """Tóm tắt bù cho bài import lúc Claude lỗi (summary_en rỗng). Chỉ ghi summary_en,
+    không đụng tag/trạng thái dịch; bài nào lỗi thì bỏ qua, chạy lại endpoint để thử tiếp."""
+    done = 0
+    for article_id in article_ids:
+        try:
+            with db.conn() as c:
+                a = c.execute("SELECT title, content_en FROM articles WHERE id=?", (article_id,)).fetchone()
+            if not a or not a["content_en"]:
+                continue
+            summary = llm.summarize_article(a["title"], a["content_en"])["summary"]
+            if summary:
+                with db.conn() as c:
+                    c.execute("UPDATE articles SET summary_en=? WHERE id=? AND (summary_en IS NULL OR summary_en='')",
+                              (summary, article_id))
+                done += 1
+        except Exception:
+            log.exception("Tóm tắt bù lỗi #%d", article_id)
+    log.info("Tóm tắt bù xong: %d/%d bài", done, len(article_ids))
+
+
+@app.post("/admin/backfill-summaries")
+def admin_backfill_summaries():
+    with db.conn() as c:
+        ids = [r["id"] for r in c.execute(
+            "SELECT id FROM articles WHERE summary_en IS NULL OR summary_en='' ORDER BY id")]
+    if ids:
+        threading.Thread(target=_backfill_summaries, args=(ids,), daemon=True).start()
+    return {"ok": True, "count": len(ids)}
+
+
 @app.post("/admin/translate/{article_id}")
 def admin_translate_one(article_id: int):
     with db.conn() as c:
