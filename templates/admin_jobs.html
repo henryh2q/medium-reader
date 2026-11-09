@@ -4,19 +4,29 @@
 {% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
 {% block head_extra %}<link rel="stylesheet" href="/static/jobs.css">{% endblock %}
 {% block content %}
-<div class="jb-app">
-  <header class="jb-top">
-    <a href="/" class="jb-brand">Đọc gì hôm nay</a><span class="badge-brief">Admin</span>
+<main class="shelf jb-shelf">
+  <header class="shelf-head">
     <nav class="admin-nav"><a href="/admin/queue">Hàng đợi link</a><a href="/admin/requests">Yêu cầu token</a><a href="/admin/jobs" class="active">Việc làm</a></nav>
-    <label class="jb-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-      <input type="search" id="a-q" placeholder="Tìm job…" autocomplete="off" aria-label="Tìm job"></label>
-    <a class="jb-apply" href="/admin/jobs/new">+ Đăng job</a>
+    <h1>Việc làm</h1>
+    <p>Dán nội dung hoặc tải file, AI sẽ trích xuất thành tin tuyển dụng để bạn duyệt rồi đăng.</p>
+    <div class="jb-headrow">
+      <form class="search-form" id="a-search" role="search" onsubmit="return false">
+        <input type="search" id="a-q" placeholder="Tìm job theo chức danh, công ty…" maxlength="100" autocomplete="off" aria-label="Tìm job">
+        <button type="submit" aria-label="Tìm kiếm">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </button>
+      </form>
+      <a class="jb-apply" href="/admin/jobs/new">+ Đăng job</a>
+    </div>
+    <nav class="topic-filter" id="a-filters" aria-label="Lọc theo trạng thái">
+      {% for key, label in [('all', 'Tất cả'), ('published', 'Đang đăng'), ('draft', 'Bản nháp'), ('expired', 'Hết hạn')] %}
+      <button class="topic-pill{% if loop.first %} active{% endif %}" type="button" data-filter="{{ key }}">{{ label }} · {{ jobs | length if key == 'all' else jobs | selectattr('state', 'equalto', key) | list | length }}</button>
+      {% endfor %}
+    </nav>
   </header>
-  <div class="jb-filters" id="a-filters">
-    {% for key, label in [('all', 'Tất cả'), ('published', 'Đang đăng'), ('draft', 'Bản nháp'), ('expired', 'Hết hạn')] %}
-    <button class="jb-pill{% if loop.first %} on{% endif %}" type="button" data-filter="{{ key }}">{{ label }} · {{ jobs | length if key == 'all' else jobs | selectattr('state', 'equalto', key) | list | length }}</button>
-    {% endfor %}
-  </div>
+</main>
+
+<div class="jb-wrap">
   <div class="jb-layout" id="a-layout" data-view="list">
     <aside class="jb-list" id="a-list" aria-label="Danh sách job">
       <div class="jb-list-head" id="a-count"></div>

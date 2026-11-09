@@ -12,7 +12,7 @@
 
 <div class="jb-dhead">
   <div class="jb-dco">{{ avatar(j, true) }}<div><b>{{ j.company_or_unknown }}</b>{% if j.location %}<div class="jb-dmeta">{{ j.location }}</div>{% endif %}</div></div>
-  <h1>{{ j.title }}</h1>
+  <h2 class="jb-name">{{ j.title }}</h2>
   <div class="jb-dmeta">
     <span>{{ j.posted }}</span>
     {% if j.deadline %}<span>· {{ 'Hết hạn' if j.expired else 'Hạn nộp' }} {{ j.deadline | date }}{% if j.days_left is not none %} (còn {{ j.days_left }} ngày){% endif %}</span>{% endif %}

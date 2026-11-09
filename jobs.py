@@ -232,6 +232,14 @@ def _flags(j: dict) -> dict:
     return {k: "miss" if not v else "inf" if k in inferred else "" for k, v in have.items()}
 
 
+def open_count() -> int:
+    """Số tin đang tuyển (đã đăng, chưa quá hạn) — hiện trên tab Việc làm."""
+    with db.conn() as c:
+        return c.execute(
+            "SELECT COUNT(*) FROM jobs WHERE status='published' AND (deadline='' OR deadline>=?)",
+            (date.today().isoformat(),)).fetchone()[0]
+
+
 def _published_jobs(c) -> list[dict]:
     rows = c.execute("SELECT * FROM jobs WHERE status='published' ORDER BY published_at DESC, id DESC").fetchall()
     jobs = [view(r) for r in rows]
@@ -259,6 +267,7 @@ def _filter(jobs: list[dict], q: str, mode: str, level: str, salary: bool) -> li
 
 def make_router(templates) -> APIRouter:
     r = APIRouter()
+    templates.env.globals["open_job_count"] = open_count
 
     # ---------- Admin ----------
 
@@ -397,7 +406,13 @@ def make_router(templates) -> APIRouter:
         elif jobs:
             selected = jobs[0]  # desktop: mở sẵn tin đầu tiên như LinkedIn
         params = {k: v for k, v in (("q", q), ("mode", mode), ("level", level), ("salary", "1" if salary == "1" else "")) if v}
-        return {"jobs": jobs, "selected": selected, "explicit": bool(slug), "q": q, "mode": mode,
+
+        def url(**override):
+            """/viec-lam kèm bộ lọc hiện tại, ghi đè bằng override (giá trị rỗng = bỏ bộ lọc đó)."""
+            merged = {k: v for k, v in {**params, **override}.items() if v}
+            return "/viec-lam" + ("?" + urlencode(merged) if merged else "")
+
+        return {"url": url, "jobs": jobs, "selected": selected, "explicit": bool(slug), "q": q, "mode": mode,
                 "level": level, "salary": salary == "1", "modes": MODES, "level_filters": LEVEL_FILTERS,
                 "qs": "?" + urlencode(params) if params else "",
                 "open_count": sum(not j["expired"] for j in everything), "total": len(jobs)}

@@ -10,8 +10,8 @@
 {% block content %}
 {# from_ai: bản nháp vừa được AI trích xuất -> mở sẵn tab Kết quả + hiện thanh tóm tắt #}
 {% set from_ai = (j.source_text or j.source_file) and j.status == 'draft' %}
-<a href="/admin/jobs#{{ j.id }}" class="back-link" style="margin:1rem 1.25rem 0">← Danh sách job</a>
-<div class="jb-app" id="rv-root" data-id="{{ j.id }}" style="margin-top:.6rem">
+<div class="jb-app" id="rv-root" data-id="{{ j.id }}">
+  <a href="/admin/jobs#{{ j.id }}" class="back-link">← Danh sách job</a>
   <div class="rv-sticky">
     <header class="jb-top">
       <span class="rv-title">{{ 'Duyệt kết quả AI' if from_ai else 'Sửa job' }}</span>

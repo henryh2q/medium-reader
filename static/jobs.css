@@ -1,6 +1,7 @@
-/* Tin tuyển dụng: /viec-lam (bố cục kiểu LinkedIn Jobs) và các trang /admin/jobs*.
-   Dùng chung biến màu/phông của style.css. Màn hẹp (< 52rem) gập 2 cột thành
-   danh sách -> chi tiết. */
+/* Tin tuyển dụng: /viec-lam và các trang /admin/jobs*.
+   Đầu trang dùng lại .shelf / .search-form / .topic-pill của style.css để giống trang Bài viết;
+   vùng danh sách + chi tiết (.jb-wrap) rộng hơn cột đầu trang, không khung riêng, cùng nền và
+   đường kẻ với phần còn lại. Màn hẹp (< 52rem) gập 2 cột thành danh sách -> chi tiết. */
 
 /* ---------- Nhãn dùng chung ---------- */
 .badge-new, .badge-brief, .badge-expired, .status { flex-shrink: 0; font-size: 0.7rem; font-weight: 600; border-radius: 4px; padding: 0.1rem 0.45rem; }
@@ -16,52 +17,49 @@
 .flag.inf { background: #e6d9f6; color: #4a2a7a; }
 .flag.img { background: #cfe3f7; color: #1d4a73; }
 
-/* ---------- Khung ứng dụng: thanh trên + pill lọc + 2 cột ---------- */
-.jb-app { max-width: 76rem; margin: 1.25rem auto; border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); overflow: clip; }
-.jb-top { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; padding: 0.7rem 1.1rem; background: var(--sheet); border-bottom: 1px solid var(--rule); }
-.jb-brand { font-weight: 700; font-size: 1.05rem; color: var(--ink); text-decoration: none; white-space: nowrap; }
-.jb-top .site-tabs, .jb-top .admin-nav { margin: 0; border: 0; gap: 1rem; }
-.jb-top .site-tabs a { padding: 0.3rem 0; }
-.site-tabs .count { font-weight: 500; font-size: 0.72rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; padding: 0 0.45rem; margin-left: 0.4rem; }
-.jb-search { flex: 1; min-width: 14rem; display: flex; align-items: center; gap: 0.5rem; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 0 0.7rem; color: var(--muted); }
-.jb-search input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: 0.92rem; padding: 0.55rem 0; color: var(--ink); outline: none; }
-.jb-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.jb-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; padding: 0.6rem 1.1rem; background: var(--sheet); border-bottom: 1px solid var(--rule); }
-.jb-pill { font: 500 0.84rem var(--ui); border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 999px; padding: 0.32rem 0.85rem; cursor: pointer; white-space: nowrap; text-decoration: none; }
-.jb-pill:hover { border-color: var(--accent); }
-.jb-pill.on { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
-.jb-pill input { display: none; }
-.jb-clear { font: 500 0.84rem var(--ui); color: var(--accent); background: none; border: 0; cursor: pointer; padding: 0.3rem 0.4rem; text-decoration: none; }
-.jb-layout { display: grid; grid-template-columns: minmax(18rem, 25rem) 1fr; height: calc(100vh - 11rem); min-height: 30rem; }
-.jb-list { overflow-y: auto; background: var(--sheet); border-right: 1px solid var(--rule); }
-.jb-list-head { position: sticky; top: 0; z-index: 1; padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--muted); background: var(--sheet); border-bottom: 1px solid var(--rule); }
+/* ---------- Đầu trang (phần riêng của Việc làm; còn lại dùng style.css) ---------- */
+.jb-shelf { padding-bottom: 1.25rem; }
+.jb-filter-row { align-items: center; margin-bottom: 0.6rem; }
+.jb-filter-row:last-child { margin-bottom: 1.5rem; }
+.filter-label { font-size: 0.75rem; color: var(--muted); min-width: 4.4rem; }
+button.topic-pill { font-family: var(--ui); background: none; cursor: pointer; }
+.jb-headrow { display: flex; gap: 0.6rem; align-items: flex-start; margin-bottom: 1rem; }
+.jb-headrow .search-form { flex: 1; margin: 0; }
+.jb-headrow .jb-apply { align-self: stretch; display: flex; align-items: center; white-space: nowrap; }
+
+/* ---------- Vùng danh sách + chi tiết ---------- */
+.jb-wrap { max-width: 72rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+.jb-layout { display: grid; grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr); align-items: start; border-top: 1px solid var(--rule); }
+.jb-list { border-right: 1px solid var(--rule); min-width: 0; }
+.jb-list-head { padding: 0.8rem 0.9rem; font-size: 0.8rem; color: var(--muted); border-bottom: 1px solid var(--rule); }
 .jb-list-head b { color: var(--ink); }
-.u-empty { color: var(--muted); padding: 2rem 1rem; font-size: 0.9rem; }
+.u-empty { color: var(--muted); padding: 2rem 0.9rem; font-size: 0.9rem; }
+.u-empty[hidden] { display: none; }
 
 /* ---------- Thẻ job ---------- */
-.jb-card { display: flex; gap: 0.8rem; padding: 1rem 1rem 1rem 1.1rem; border-bottom: 1px solid var(--rule); cursor: pointer; position: relative; color: var(--ink); text-decoration: none; }
-.jb-card:hover, .jb-card.sel { background: var(--paper); }
+.jb-card { display: flex; gap: 0.8rem; padding: 1rem 0.9rem; border-bottom: 1px solid var(--rule); cursor: pointer; position: relative; color: var(--ink); text-decoration: none; }
+.jb-card:hover, .jb-card.sel { background: var(--sheet); }
 .jb-card.sel::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); }
 .jb-card.expired { opacity: 0.55; }
 .jb-card[hidden] { display: none; }
 .jb-avatar { flex: 0 0 3rem; width: 3rem; height: 3rem; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: #fff; background: hsl(var(--h, 210) 45% 42%); }
 .jb-avatar.lg { flex-basis: 4rem; width: 4rem; height: 4rem; font-size: 1.6rem; }
 .jb-card-body { min-width: 0; }
-.jb-title { font-weight: 600; font-size: 0.98rem; line-height: 1.3; color: var(--accent); }
-.jb-card.sel .jb-title, .jb-card:hover .jb-title { text-decoration: underline; }
+.jb-title { font-weight: 600; font-size: 0.98rem; line-height: 1.3; color: var(--ink); }
+.jb-card.sel .jb-title, .jb-card:hover .jb-title { color: var(--accent); }
 .jb-co { font-size: 0.86rem; margin-top: 0.1rem; }
 .jb-loc { font-size: 0.82rem; color: var(--muted); }
 .jb-sal { display: inline-block; margin-top: 0.35rem; font-size: 0.78rem; font-weight: 600; color: #14633a; background: #eaf7ef; border-radius: 4px; padding: 0.05rem 0.45rem; }
 .jb-foot { margin-top: 0.35rem; font-size: 0.76rem; color: var(--muted); display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
 /* ---------- Chi tiết job ---------- */
-.jb-detail { overflow-y: auto; background: var(--sheet); }
+.jb-detail { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; }
 .jb-dhead { padding: 1.4rem 1.6rem 1.1rem; border-bottom: 1px solid var(--rule); }
 .jb-dco { display: flex; align-items: center; gap: 0.8rem; }
-.jb-dhead h1 { font-size: 1.5rem; line-height: 1.25; font-weight: 700; margin: 0.9rem 0 0.25rem; letter-spacing: -0.01em; }
+.jb-name { font-size: 1.5rem; line-height: 1.25; font-weight: 700; margin: 0.9rem 0 0.25rem; letter-spacing: -0.01em; }
 .jb-dmeta { color: var(--muted); font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.2rem 0.6rem; align-items: center; }
 .jb-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.9rem 0; }
-.jb-chip { font-size: 0.82rem; font-weight: 600; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 0.25rem 0.6rem; }
+.jb-chip { font-size: 0.82rem; font-weight: 600; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 0.25rem 0.6rem; }
 .jb-chip.sal { color: #14633a; background: #eaf7ef; border-color: #a9d9bb; }
 .jb-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .jb-apply, .jb-ghost { font: 600 0.95rem var(--ui); border-radius: 999px; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
@@ -81,12 +79,12 @@
 .apply-box dt { color: var(--muted); font-size: 0.85rem; }
 .apply-box dd { margin: 0; font-size: 0.95rem; overflow-wrap: anywhere; }
 .source-box { margin: 1.25rem 0 0; font-size: 0.8125rem; color: var(--muted); line-height: 1.6; }
-.jb-back { display: none; background: none; border: 0; font: 500 0.9rem var(--ui); color: var(--accent); padding: 0.8rem 1.1rem 0; cursor: pointer; text-decoration: none; }
+.jb-back { display: none; background: none; border: 0; font: 500 0.9rem var(--ui); color: var(--accent); padding: 0.8rem 1.25rem 0; cursor: pointer; text-decoration: none; }
 .jb-mbar { display: none; }
 
 /* ---------- Admin: đăng job mới ---------- */
-.page { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
-.page h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
+.page { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+.page h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
 .page .lead { color: var(--muted); margin: 0 0 1.25rem; }
 .post-card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 1.4rem; }
 .post-card[hidden] { display: none; }
@@ -118,6 +116,8 @@
 @media (prefers-reduced-motion: reduce) { .steps li.doing .ic { animation-duration: 2.4s; } }
 
 /* ---------- Admin: duyệt / sửa job (form trái, xem trước phải) ---------- */
+.jb-app { max-width: 72rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
+.jb-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
 .field { margin-bottom: 0.9rem; }
 .field label { display: block; font-size: 0.8125rem; color: var(--muted); margin-bottom: 0.3rem; }
 .field small { color: var(--muted); font-size: 0.75rem; }
@@ -128,17 +128,17 @@
 .salary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; margin-top: 0.4rem; color: var(--ink); }
 .field .check input { width: auto; margin: 0; }
-.jb-layout.rv { grid-template-columns: minmax(22rem, 30rem) 1fr; height: calc(100vh - 14rem); min-height: 34rem; }
-.jb-form { padding: 1rem 1.1rem 2rem; }
+.jb-layout.rv { grid-template-columns: minmax(22rem, 30rem) minmax(0, 1fr); }
+.jb-form { padding: 1rem 1.2rem 2rem 0; }
 .jb-form h3 { font-size: 0.92rem; margin: 1.2rem 0 0.6rem; padding-top: 0.9rem; border-top: 1px solid var(--rule); }
 .jb-form h3:first-of-type { margin-top: 0.4rem; padding-top: 0; border: 0; }
 .jb-form details { margin-top: 1.2rem; border-top: 1px solid var(--rule); padding-top: 0.9rem; }
 .jb-form summary { cursor: pointer; font-size: 0.85rem; color: var(--accent); }
-.src-text { white-space: pre-wrap; font-size: 0.82rem; line-height: 1.55; max-height: 16rem; overflow: auto; margin-top: 0.6rem; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem 0.8rem; }
+.src-text { white-space: pre-wrap; font-size: 0.82rem; line-height: 1.55; max-height: 16rem; overflow: auto; margin-top: 0.6rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem 0.8rem; }
 .rv-title { font-weight: 700; font-size: 1.02rem; }
 .rv-actions { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .rv-actions .jb-apply, .rv-actions .jb-ghost { padding: 0.4rem 1.1rem; font-size: 0.88rem; }
-.rv-bar { padding: 0.7rem 1.1rem; background: var(--sheet); border-bottom: 1px solid var(--rule); font-size: 0.85rem; }
+.rv-bar { padding: 0.7rem 0; border-bottom: 1px solid var(--rule); font-size: 0.85rem; }
 .rv-sum { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .rv-jump { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.55rem; }
 .rv-chip { font: 600 0.76rem var(--ui); border: 1px solid; border-radius: 999px; padding: 0.2rem 0.65rem; cursor: pointer; }
@@ -148,38 +148,42 @@
 .rv-notes { margin-top: 0.55rem; }
 .rv-notes summary { cursor: pointer; color: var(--accent); }
 .rv-notes ul { margin: 0.4rem 0 0; padding-left: 1.1rem; color: var(--muted); line-height: 1.6; }
-.rv-tabs { display: none; gap: 0.4rem; padding: 0.5rem 1.1rem; background: var(--sheet); border-bottom: 1px solid var(--rule); }
+.rv-tabs { display: none; gap: 0.4rem; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
 .rv-tabs button { flex: 1; font: 600 0.85rem var(--ui); padding: 0.45rem; border: 1px solid var(--rule); background: none; border-radius: 8px; color: var(--muted); cursor: pointer; }
 .rv-tabs button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.jb-prev-label { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.55rem 1.1rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: var(--paper); border-bottom: 1px solid var(--rule); }
-#rv-preview-card .jb-card { cursor: default; border-bottom: 0; }
+.jb-prev-label { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.55rem 1.2rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule); }
 #rv-preview-card { border-bottom: 1px solid var(--rule); }
+#rv-preview-card .jb-card { cursor: default; border-bottom: 0; padding-left: 1.2rem; }
 #rv-preview .jb-apply { pointer-events: none; }
-.rv-toast { position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%); background: var(--ink); color: var(--paper); border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.875rem; z-index: 60; }
 
 /* ---------- Màn hẹp: danh sách -> chi tiết ---------- */
 @media (max-width: 52rem) {
-  .jb-app { margin: 0; border: 0; border-radius: 0; }
-  .jb-layout, .jb-layout.rv { grid-template-columns: 1fr; height: auto; min-height: 0; }
+  .jb-wrap { padding: 0 0 3rem; }
+  .jb-layout, .jb-layout.rv { grid-template-columns: 1fr; }
   .jb-list { border-right: 0; }
+  .jb-detail { position: static; max-height: none; overflow: visible; }
   .jb-layout[data-view="list"] .jb-detail, .jb-layout[data-view="detail"] .jb-list { display: none; }
   .jb-back { display: block; }
-  .jb-top { gap: 0.6rem 0.9rem; }
-  .jb-search { order: 9; flex-basis: 100%; }
-  .jb-dhead, .jb-dbody { padding-left: 1.1rem; padding-right: 1.1rem; }
-  .apply-box dl { grid-template-columns: 1fr; }
-  .jb-layout.adm .jb-card.sel, .jb-layout:not(.rv) .jb-card.sel { background: none; }
+  .jb-list-head, .jb-card { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .jb-layout:not(.rv) .jb-card.sel { background: none; }
   .jb-layout:not(.rv) .jb-card.sel::before { display: none; }
+  .jb-dhead, .jb-dbody { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .apply-box dl { grid-template-columns: 1fr; }
+  .jb-headrow { flex-wrap: wrap; }
+  .jb-headrow .search-form { flex-basis: 100%; }
   /* trang chi tiết có thanh Ứng tuyển dính ở đáy */
-  .jb-mbar { display: block; position: sticky; bottom: 0; margin: 1.4rem -1.1rem -2.5rem; padding: 0.7rem 1.1rem 1rem; background: var(--sheet); border-top: 1px solid var(--rule); }
+  .jb-mbar { display: block; position: sticky; bottom: 0; margin: 1.4rem -1.25rem -2.5rem; padding: 0.7rem 1.25rem 1rem; background: var(--sheet); border-top: 1px solid var(--rule); }
   .jb-mbar .jb-apply { display: block; width: 100%; }
   .jb-actions .jb-apply { display: none; }
   .jb-actions.admin .jb-apply, .jb-actions.admin .jb-ghost { display: inline-block; }
   /* form duyệt: tab Chỉnh sửa | Kết quả, thanh nút dính ở đầu */
+  .jb-app { padding: 0.8rem 1.25rem 3rem; }
+  .jb-form { padding-right: 0; }
   .rv-tabs { display: flex; }
-  .rv-sticky { position: sticky; top: 0; z-index: 5; }
+  .rv-sticky { position: sticky; top: 0; z-index: 5; background: var(--paper); margin: 0 -1.25rem; padding: 0 1.25rem; }
   .jb-layout.rv[data-view="result"] .jb-form { display: none; }
   .jb-layout.rv[data-view="edit"] .jb-detail { display: none; }
-  .page { padding: 1rem 1rem 3rem; }
+  .jb-prev-label, #rv-preview-card .jb-card { padding-left: 0; padding-right: 0; }
+  .page { padding: 1.5rem 1.25rem 3rem; }
   .post-card { padding: 1rem; }
 }

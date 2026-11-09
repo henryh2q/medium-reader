@@ -1,14 +1,10 @@
 // /viec-lam: bấm thẻ ở màn rộng thì chỉ thay khung chi tiết (không tải lại trang) và đổi URL;
 // màn hẹp để trình duyệt điều hướng bình thường (danh sách -> trang chi tiết).
 (() => {
-  const form = document.getElementById('jb-form');
   const list = document.getElementById('jb-list');
   const body = document.getElementById('jb-detail-body');
   const detail = document.getElementById('jb-detail');
   const wide = window.matchMedia('(min-width: 52.01rem)');
-
-  // Đổi bộ lọc là áp dụng luôn, khỏi cần bấm nút tìm.
-  form.addEventListener('change', () => form.requestSubmit());
 
   async function open(card) {
     const url = new URL(card.href);

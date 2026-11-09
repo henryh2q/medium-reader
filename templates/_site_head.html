@@ -1,0 +1,10 @@
+{# Đầu trang dùng chung cho Bài viết (/) và Việc làm (/viec-lam): tiêu đề, mô tả, tab. #}
+{% macro head(active, lead) %}
+<h1>Đọc gì hôm nay</h1>
+<p>{{ lead }}</p>
+{% set open_jobs = open_job_count() %}
+<nav class="site-tabs" aria-label="Khu vực">
+  <a href="/"{% if active == 'articles' %} class="active"{% endif %}>Bài viết</a>
+  <a href="/viec-lam"{% if active == 'jobs' %} class="active"{% endif %}>Việc làm{% if open_jobs %}<span class="count">{{ open_jobs }}</span>{% endif %}</a>
+</nav>
+{% endmacro %}

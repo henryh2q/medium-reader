@@ -35,7 +35,7 @@
     const b = e.target.closest('[data-filter]');
     if (!b) return;
     filter = b.dataset.filter;
-    document.querySelectorAll('#a-filters .jb-pill').forEach((p) => p.classList.toggle('on', p === b));
+    document.querySelectorAll('#a-filters .topic-pill').forEach((p) => p.classList.toggle('active', p === b));
     apply();
   });
   $('#a-q').addEventListener('input', (e) => { query = e.target.value; apply(); });
