@@ -15,7 +15,7 @@ from urllib.parse import urlencode, urlsplit
 
 import markdown
 import nh3
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -440,72 +440,113 @@ templates.env.globals["home_url"] = home_url
 templates.env.filters["host"] = fmt_host
 
 
+PAGE_SIZE = 20  # số bài mỗi lần tải ở trang chủ (lần đầu + mỗi lần cuộn tới cuối)
+
+
+def _tags_for(c, article_ids: list[int]) -> dict[int, list[str]]:
+    tags: dict[int, list[str]] = {aid: [] for aid in article_ids}
+    for i in range(0, len(article_ids), 500):
+        chunk = article_ids[i:i + 500]
+        for r in c.execute(
+            f"""SELECT at.article_id, t.name FROM article_tags at
+                JOIN tags t ON t.id = at.tag_id
+                WHERE at.article_id IN ({",".join("?" * len(chunk))})
+                ORDER BY t.name""",
+            chunk,
+        ):
+            tags[r["article_id"]].append(r["name"])
+    return tags
+
+
+def _list_articles(c, tag: str | None, category: str | None, q: str | None, offset: int):
+    """Một trang bài của trang chủ, mới nhất trước, đã áp bộ lọc tag/category/tìm kiếm.
+    Trả (rows, total, tags_by_article, snippets, terms)."""
+    q = (q or "").strip()[:search.MAX_QUERY_LEN]
+    terms = search.parse_terms(q)
+
+    joins, where, params = "", [], []
+    if tag:
+        joins = "JOIN article_tags at ON at.article_id = a.id JOIN tags t ON t.id = at.tag_id"
+        where.append("t.name = ?")
+        params.append(tag)
+    if category:
+        names = [r["name"] for r in c.execute("SELECT name FROM tags")
+                 if categories.category_for_tag(r["name"]) == category]
+        if not names:
+            return [], 0, {}, {}, terms
+        where.append(
+            """a.id IN (SELECT ct.article_id FROM article_tags ct
+                       JOIN tags tt ON tt.id = ct.tag_id
+                       WHERE tt.name IN (%s))""" % ",".join("?" * len(names)))
+        params.extend(names)
+    where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+    # id làm khoá phụ: created_at chỉ chính xác tới giây, thiếu nó thứ tự giữa các trang có thể xô lệch
+    order = "ORDER BY a.created_at DESC, a.id DESC"
+
+    snippets: dict[int, object] = {}
+    if not terms:
+        total = c.execute(f"SELECT COUNT(*) FROM articles a {joins} {where_sql}", params).fetchone()[0]
+        rows = c.execute(
+            f"SELECT a.* FROM articles a {joins} {where_sql} {order} LIMIT ? OFFSET ?",
+            [*params, PAGE_SIZE, offset],
+        ).fetchall()
+        return rows, total, _tags_for(c, [r["id"] for r in rows]), snippets, terms
+
+    # Tìm kiếm khớp trong cả nội dung bài nên phải quét toàn bộ rồi mới cắt trang.
+    candidates = c.execute(f"SELECT a.* FROM articles a {joins} {where_sql} {order}", params).fetchall()
+    all_tags = _tags_for(c, [r["id"] for r in candidates])
+    kept = []
+    for r in candidates:
+        ok, snippet = search.article_view(r, all_tags[r["id"]], terms)
+        if ok:
+            kept.append(r)
+            if snippet:
+                snippets[r["id"]] = snippet
+    # candidates đã sắp mới nhất trước; sort ổn định nên cùng điểm vẫn giữ thứ tự theo ngày
+    kept.sort(key=lambda r: -search.score_article(r, all_tags[r["id"]], terms))
+    rows = kept[offset:offset + PAGE_SIZE]
+    return rows, len(kept), {r["id"]: all_tags[r["id"]] for r in rows}, snippets, terms
+
+
+def _translating_snapshot() -> set[int]:
+    with _translating_lock:
+        return set(_translating)
+
+
 @app.get("/")
 def index(request: Request, tag: str | None = None, category: str | None = None,
           q: str | None = None):
     with db.conn() as c:
-        if tag:
-            rows = c.execute(
-                """SELECT a.* FROM articles a
-                   JOIN article_tags at ON at.article_id = a.id
-                   JOIN tags t ON t.id = at.tag_id
-                   WHERE t.name = ?
-                   ORDER BY a.created_at DESC LIMIT 200""",
-                (tag,),
-            ).fetchall()
-        else:
-            rows = c.execute(
-                "SELECT * FROM articles ORDER BY created_at DESC LIMIT 200"
-            ).fetchall()
-        article_ids = [r["id"] for r in rows]
-        tags_by_article: dict[int, list[str]] = {aid: [] for aid in article_ids}
-        if article_ids:
-            placeholders = ",".join("?" * len(article_ids))
-            for r in c.execute(
-                f"""SELECT at.article_id, t.name FROM article_tags at
-                    JOIN tags t ON t.id = at.tag_id
-                    WHERE at.article_id IN ({placeholders})
-                    ORDER BY t.name""",
-                article_ids,
-            ):
-                tags_by_article[r["article_id"]].append(r["name"])
+        rows, total, tags_by_article, snippets, terms = _list_articles(c, tag, category, q, 0)
         all_tags = [r["name"] for r in c.execute("SELECT name FROM tags ORDER BY name")]
-
-    categories_by_article = {
-        aid: categories.categories_for_tags(names) for aid, names in tags_by_article.items()
-    }
-    if category:
-        rows = [r for r in rows if category in categories_by_article.get(r["id"], [])]
-
-    q = (q or "").strip()[:search.MAX_QUERY_LEN]
-    terms = search.parse_terms(q)
-    snippets: dict[int, object] = {}
-    if terms:
-        kept = []
-        for r in rows:
-            ok, snippet = search.article_view(r, tags_by_article[r["id"]], terms)
-            if ok:
-                kept.append(r)
-                if snippet:
-                    snippets[r["id"]] = snippet
-        # rows đã sắp mới nhất trước; sort ổn định nên cùng điểm vẫn giữ thứ tự theo ngày
-        rows = sorted(kept, key=lambda r: -search.score_article(r, tags_by_article[r["id"]], terms))
-
-    with _translating_lock:
-        translating_ids = set(_translating)
     return templates.TemplateResponse(request, "index.html", {
         "articles": rows,
-        "translating_ids": translating_ids,
+        "total": total,
+        "next_offset": len(rows) if len(rows) < total else None,
+        "translating_ids": _translating_snapshot(),
         "tags_by_article": tags_by_article,
-        "categories_by_article": categories_by_article,
         "all_categories": categories.CATEGORIES,
         "all_tags": all_tags,
         "active_tag": tag,
         "active_category": category,
-        "q": q,
+        "q": (q or "").strip()[:search.MAX_QUERY_LEN],
         "terms": terms,
         "snippets": snippets,
     })
+
+
+@app.get("/api/articles")
+def api_articles(offset: int = Query(0, ge=0), tag: str | None = None,
+                 category: str | None = None, q: str | None = None):
+    """Trang bài kế tiếp cho cuộn vô hạn: trả HTML các dòng bài (cùng template với trang
+    chủ, nên tô vàng/đoạn trích/nút dịch giống hệt) + offset của trang sau (null = hết)."""
+    with db.conn() as c:
+        rows, total, tags_by_article, snippets, terms = _list_articles(c, tag, category, q, offset)
+    html = templates.get_template("_entries.html").render(
+        articles=rows, translating_ids=_translating_snapshot(), tags_by_article=tags_by_article,
+        snippets=snippets, terms=terms)
+    end = offset + len(rows)
+    return {"html": html, "next": end if rows and end < total else None}
 
 
 def _translate_one(article_id: int) -> None:

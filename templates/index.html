@@ -25,13 +25,13 @@
     {% endif %}
     {% if q %}
     <p class="search-summary">
-      {{ articles | length }} bài khớp “<b>{{ q }}</b>”
+      {{ total }} bài khớp “<b>{{ q }}</b>”
       · <a href="{{ home_url(category=active_category, tag=active_tag) }}">Xoá tìm kiếm</a>
     </p>
     {% endif %}
   </header>
 
-  {% if not articles %}
+  {% if not total %}
   <section class="empty">
     {% if q %}
     <p>Không có bài nào khớp “{{ q }}”. Thử từ khoá khác, ít từ hơn, hoặc không cần gõ dấu.</p>
@@ -42,43 +42,30 @@
   </section>
   {% endif %}
 
-  <ol class="entries">
-  {% for a in articles %}
-    <li class="entry" data-id="{{ a.id }}"
-        data-status="{{ 'translating' if a.id in translating_ids else a.status }}"
-        data-title="{{ a.title }}">
-      <div>
-        <h2>
-          {% if a.id in translating_ids %}
-            <a href="/bai-viet/{{ a.slug }}">{{ a.title | highlight(terms) }}</a>
-            <span class="spinner" title="Đang dịch…" aria-label="Đang dịch…"></span>
-          {% elif a.status == 'translated' %}
-            <a href="/bai-viet/{{ a.slug }}">{{ (a.title_vi or a.title) | highlight(terms) }}</a>
-          {% else %}
-            <a href="/bai-viet/{{ a.slug }}">{{ a.title | highlight(terms) }}</a>
-            <button type="button" class="translate-one" data-id="{{ a.id }}" title="Dịch bài này" aria-label="Dịch bài này">{% include "_translate_icon.html" %}</button>
-          {% endif %}
-        </h2>
-        <p class="meta">
-          {% if a.author %}<span>{{ a.author | highlight(terms) }}</span>{% endif %}
-          <span>{{ a.created_at | date }}</span>
-          {% if a.id in translating_ids %}<span class="tag">Đang dịch…</span>
-          {% elif a.status == 'failed' %}<span class="tag tag-err">Dịch lỗi</span>
-          {% endif %}
-        </p>
-        {% set desc = a.summary_vi if a.status == 'translated' else a.summary_en %}
-        {% if desc %}<p class="desc">{{ desc | highlight(terms) }}</p>{% endif %}
-        {% if snippets.get(a.id) %}<p class="snippet">{{ snippets[a.id] }}</p>{% endif %}
-        {% set article_tags = tags_by_article.get(a.id, []) %}
-        {% if article_tags %}
-        <p class="topics">
-          {% for t in article_tags %}<a href="/?tag={{ t | urlencode }}" class="topic-pill-sm">{{ t | highlight(terms) }}</a>{% endfor %}
-        </p>
-        {% endif %}
-      </div>
-    </li>
-  {% endfor %}
+  <ol class="entries" id="entries">
+  {% include "_entries.html" %}
   </ol>
+
+  {# Còn bài chưa tải: khối skeleton này vừa là mốc để IntersectionObserver biết đã cuộn
+     tới cuối (static/infinite-scroll.js), vừa là chỗ giữ chỗ trong lúc chờ bài tiếp theo. #}
+  {% if next_offset is not none %}
+  <div id="feed-more" class="feed-more" data-next="{{ next_offset }}">
+    <ol class="entries feed-skeleton" id="feed-skeleton" role="status" aria-label="Đang tải thêm bài viết…">
+      {% for _ in range(3) %}
+      <li class="entry entry-skeleton" aria-hidden="true">
+        <span class="sk sk-title"></span>
+        <span class="sk sk-meta"></span>
+        <span class="sk sk-line"></span>
+        <span class="sk sk-line sk-line-short"></span>
+        <span class="sk-pills"><span class="sk sk-pill"></span><span class="sk sk-pill"></span></span>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="feed-error" id="feed-error" hidden>
+      Không tải được thêm bài. <button type="button" id="feed-retry">Thử lại</button>
+    </p>
+  </div>
+  {% endif %}
 </main>
 
 {# Dịch hàng loạt tạm ẩn — thay bằng "Gửi bài viết". Bật lại: xoá comment dưới +
@@ -127,6 +114,7 @@
 #}
 
 <script src="/static/translate.js"></script>
+<script src="/static/infinite-scroll.js"></script>
 <script src="/static/feedback.js"></script>
 <script src="/static/fresh-on-resume.js"></script>
 {% endblock %}

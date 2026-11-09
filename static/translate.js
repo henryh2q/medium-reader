@@ -1,5 +1,4 @@
 (() => {
-  const entries = [...document.querySelectorAll('.entry')];
   const POLL_MS = 3000;
   let pollTimer = null;
 
@@ -15,7 +14,8 @@
   // ---------- Theo dõi tiến độ các bài đang dịch ----------
   const progressBar = document.getElementById('progress-bar');
   const trackingIds = new Set(
-    entries.filter((e) => e.dataset.status === 'translating').map((e) => Number(e.dataset.id)),
+    [...document.querySelectorAll('.entry')]
+      .filter((e) => e.dataset.status === 'translating').map((e) => Number(e.dataset.id)),
   );
   const syncProgressBar = () => { progressBar.hidden = trackingIds.size === 0; };
   syncProgressBar();
@@ -110,6 +110,16 @@
 
   if (trackingIds.size) poll();
 
+  // Các dòng bài do cuộn vô hạn (static/infinite-scroll.js) nối thêm vào sau khi trang đã tải.
+  document.addEventListener('entries:added', (e) => {
+    for (const entry of e.detail.entries) {
+      entry.querySelectorAll('.translate-one').forEach(bindTranslateButton);
+      if (entry.dataset.status === 'translating') trackingIds.add(Number(entry.dataset.id));
+    }
+    syncProgressBar();
+    if (trackingIds.size && !pollTimer) pollTimer = setTimeout(poll, POLL_MS);
+  });
+
   // ---------- Dịch hàng loạt ----------
   const fab = document.getElementById('batch-fab');
   const modal = document.getElementById('batch-modal');
@@ -120,7 +130,7 @@
   const submitBtn = document.getElementById('batch-submit');
 
   const openModal = () => {
-    const pending = entries.filter((e) => e.dataset.status === 'new' || e.dataset.status === 'failed');
+    const pending = [...document.querySelectorAll('.entry')].filter((e) => e.dataset.status === 'new' || e.dataset.status === 'failed');
     list.innerHTML = '';
     if (!pending.length) {
       const li = document.createElement('li');
