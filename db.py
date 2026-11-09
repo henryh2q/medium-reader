@@ -78,6 +78,18 @@ CREATE TABLE IF NOT EXISTS token_requests (
     note       TEXT,                           -- ghi chú tuỳ chọn (vd. email liên hệ)
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+-- API key cho ứng dụng bên ngoài đọc blog qua /api/v1/*. Chỉ lưu SHA-256 của key (key
+-- gốc hiện đúng 1 lần lúc tạo ở /admin/api-keys); thu hồi bằng status='revoked'.
+CREATE TABLE IF NOT EXISTS api_keys (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT NOT NULL,                -- tên hệ thống được cấp key, để nhận biết khi thu hồi
+    key_hash     TEXT UNIQUE NOT NULL,
+    key_prefix   TEXT NOT NULL,                -- vài ký tự đầu của key, chỉ để admin đối chiếu
+    status       TEXT DEFAULT 'active',        -- active | revoked
+    created_at   TEXT DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TEXT
+);
 """
 
 
@@ -109,6 +121,22 @@ def set_article_tags(c, article_id: int, tag_names: list[str]) -> None:
         row = c.execute("SELECT id FROM tags WHERE name=?", (name,)).fetchone()
         c.execute("INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?,?)",
                   (article_id, row["id"]))
+
+
+def tags_for_articles(c, article_ids: list[int]) -> dict[int, list[str]]:
+    """Tên tag (sắp theo tên) của từng bài; bài không có tag vẫn có mục với list rỗng."""
+    tags: dict[int, list[str]] = {aid: [] for aid in article_ids}
+    for i in range(0, len(article_ids), 500):  # chunk để không vượt giới hạn biến của SQLite
+        chunk = article_ids[i:i + 500]
+        for r in c.execute(
+            f"""SELECT at.article_id, t.name FROM article_tags at
+                JOIN tags t ON t.id = at.tag_id
+                WHERE at.article_id IN ({",".join("?" * len(chunk))})
+                ORDER BY t.name""",
+            chunk,
+        ):
+            tags[r["article_id"]].append(r["name"])
+    return tags
 
 
 @contextmanager

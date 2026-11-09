@@ -27,6 +27,7 @@ import db
 import emailer
 import fetcher
 import llm
+import public_api
 import search
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -368,6 +369,33 @@ def admin_approve_request(request_id: str):
             (token, request_id),
         )
     return {"ok": True, "token": token}
+
+
+# ---------- API key cho ứng dụng ngoài đọc blog (/api/v1/*, xem public_api.py) ----------
+
+class ApiKeyIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+@app.post("/admin/api-keys")
+def admin_create_api_key(body: ApiKeyIn):
+    # Key gốc chỉ có trong response này — DB chỉ giữ hash, mất là phải tạo key mới.
+    return public_api.create_api_key(body.name.strip())
+
+
+@app.get("/admin/api-keys")
+def admin_list_api_keys():
+    return {"keys": public_api.list_api_keys()}
+
+
+@app.post("/admin/api-keys/{key_id}/revoke")
+def admin_revoke_api_key(key_id: int):
+    if not public_api.revoke_api_key(key_id):
+        raise HTTPException(404, "Không tìm thấy key đang hoạt động")
+    return {"ok": True}
+
+
+app.include_router(public_api.make_router(public_base))
 
 
 # ---------- Báo cáo sự cố / đóng góp ----------

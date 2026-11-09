@@ -31,8 +31,10 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | `llm.py` | Tóm tắt + tag, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
 | `emailer.py` | Gửi email thông báo (yêu cầu token, feedback) qua Resend API |
 | `app.py` | FastAPI: danh sách bài, trang đọc, import/dịch, `/submit` + hàng đợi link `/admin/queue` + `/admin/requests` (duyệt token), feedback, SEO (`/sitemap.xml`, `/robots.txt`) |
+| `public_api.py` | API chỉ đọc `/api/v1/*` cho ứng dụng ngoài, xác thực bằng API key (bảng `api_keys`) |
 | `static/article_translate.js` | Nút "Dịch sang tiếng Việt" ở trang đọc bài chưa dịch: trạng thái đang dịch, polling, popup tải lại |
 | `static/translate.js` | Icon dịch cạnh từng bài + polling `GET /api/status` để tự cập nhật, không cần reload |
+| `static/infinite-scroll.js` | Cuộn vô hạn ở trang chủ: skeleton ở cuối danh sách là mốc IntersectionObserver, tới gần thì gọi `GET /api/articles?offset=` lấy 20 bài kế tiếp (HTML dựng từ `templates/_entries.html`) |
 | `static/submit.js` | Luồng yêu cầu token: tạo request, polling trạng thái, resume qua `?request_id=` |
 | `static/submit_url.js` | Ô "Gửi link bài viết" ở `/submit` (hàng đợi URL), điền sẵn từ `?url=` |
 | `static/admin_queue.js` | Nút "Từ chối" trên trang hàng đợi `/admin/queue` |
@@ -205,6 +207,33 @@ qua `POST /api/feedback` (dùng chung `emailer.py`/Resend với luồng yêu c�
   `<link rel="canonical">`; trang bài viết dùng tóm tắt thật làm mô tả.
 - `/sitemap.xml` liệt kê trang chủ + mọi bài đã dịch; `/robots.txt` trỏ tới sitemap
   và chặn index `/submit`, `/admin/*`.
+
+## API cho ứng dụng ngoài (`/api/v1`)
+
+Cho hệ thống khác đọc dữ liệu blog. Mỗi hệ thống một API key để thu hồi riêng; DB chỉ
+lưu hash SHA-256 của key. Cần đặt `ADMIN_USER`/`ADMIN_PASS` (các route quản lý key nằm
+dưới `/admin/*`, đi qua Basic Auth).
+
+```bash
+# Cấp key (key gốc chỉ hiện đúng 1 lần trong response)
+curl -u "$ADMIN_USER:$ADMIN_PASS" -X POST $BASE/admin/api-keys \
+  -H 'Content-Type: application/json' -d '{"name": "ten-he-thong"}'
+# Xem danh sách key (không hiện key gốc) / thu hồi
+curl -u "$ADMIN_USER:$ADMIN_PASS" $BASE/admin/api-keys
+curl -u "$ADMIN_USER:$ADMIN_PASS" -X POST $BASE/admin/api-keys/1/revoke
+```
+
+Gọi API bằng `X-API-Key: <key>` hoặc `Authorization: Bearer <key>` (thiếu/sai/đã thu hồi -> 401):
+
+| Endpoint | Mô tả |
+|---|---|
+| `GET /api/v1/articles` | Danh sách bài, mới nhất trước, **không** kèm nội dung. Query: `page`, `limit` (≤100, mặc định 20), `tag`, `category` (`AI`/`System Design`), `q` (tìm không phân biệt dấu, xếp theo độ khớp), `status` (`new`/`translated`/`failed`), `created_after` (UTC, vd. `2025-10-01` hoặc `2025-10-01T08:30:00`). Trả `{data, page, limit, total, has_more}` |
+| `GET /api/v1/articles/{slug}` | Một bài đầy đủ, thêm `content_en` và `content_vi` (Markdown; `content_vi` là `null` nếu chưa dịch) |
+| `GET /api/v1/tags` | Mọi tag kèm số bài |
+
+Mỗi bài có: `id`, `slug`, `web_url` (link trên site), `source_url` (bài gốc), `title`, `title_vi`,
+`author`, `summary_en`, `summary_vi`, `tags`, `categories`, `word_count`, `status`, `created_at`.
+Bản `_vi` chỉ có khi `status = translated`.
 
 ## Giới hạn đã biết
 
