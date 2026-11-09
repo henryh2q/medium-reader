@@ -31,10 +31,13 @@ uvicorn app:app --reload      # mở http://127.0.0.1:8000
 | `llm.py` | Tóm tắt + tag, dịch (theo đoạn, giữ nguyên code), giải thích thuật ngữ |
 | `emailer.py` | Gửi email thông báo (yêu cầu token, feedback) qua Resend API |
 | `app.py` | FastAPI: danh sách bài, trang đọc, import/dịch, `/submit` + hàng đợi link `/admin/queue` + `/admin/requests` (duyệt token), feedback, SEO (`/sitemap.xml`, `/robots.txt`) |
+| `jobs.py` | Tin tuyển dụng: route `/admin/jobs*` (đăng/duyệt/sửa) và `/viec-lam*` (công khai), làm sạch dữ liệu job, dựng dữ liệu hiển thị |
 | `public_api.py` | API chỉ đọc `/api/v1/*` cho ứng dụng ngoài, xác thực bằng API key (bảng `api_keys`) |
 | `static/article_translate.js` | Nút "Dịch sang tiếng Việt" ở trang đọc bài chưa dịch: trạng thái đang dịch, polling, popup tải lại |
 | `static/translate.js` | Icon dịch cạnh từng bài + polling `GET /api/status` để tự cập nhật, không cần reload |
 | `static/infinite-scroll.js` | Cuộn vô hạn ở trang chủ: skeleton ở cuối danh sách là mốc IntersectionObserver, tới gần thì gọi `GET /api/articles?offset=` lấy 20 bài kế tiếp (HTML dựng từ `templates/_entries.html`) |
+| `static/jobs.css`, `static/jobs.js` | Giao diện kiểu LinkedIn của `/viec-lam` (danh sách trái, chi tiết phải); bấm thẻ chỉ thay khung chi tiết qua `?partial=1` |
+| `static/admin_jobs.js`, `static/admin_job_new.js`, `static/admin_job_edit.js` | Danh sách job ở admin, form đăng (text/file -> `POST /admin/jobs/extract`), form duyệt + xem trước |
 | `static/submit.js` | Luồng yêu cầu token: tạo request, polling trạng thái, resume qua `?request_id=` |
 | `static/submit_url.js` | Ô "Gửi link bài viết" ở `/submit` (hàng đợi URL), điền sẵn từ `?url=` |
 | `static/admin_queue.js` | Nút "Từ chối" trên trang hàng đợi `/admin/queue` |
@@ -234,6 +237,27 @@ Gọi API bằng `X-API-Key: <key>` hoặc `Authorization: Bearer <key>` (thiế
 Mỗi bài có: `id`, `slug`, `web_url` (link trên site), `source_url` (bài gốc), `title`, `title_vi`,
 `author`, `summary_en`, `summary_vi`, `tags`, `categories`, `word_count`, `status`, `created_at`.
 Bản `_vi` chỉ có khi `status = translated`.
+
+## Việc làm (`/viec-lam`)
+
+Admin đăng tin chỉ bằng **1 ô text và/hoặc 1 file** ở `/admin/jobs/new`; Claude trích xuất thành đúng
+định dạng job, tạo **bản nháp** để bạn duyệt rồi mới đăng.
+
+- **Đầu vào:** text dán vào, hoặc file PDF / ảnh (đọc bằng vision) / `.docx` / `.txt` / `.md`, tối đa 10 MB
+  (ảnh tối đa 5 MB). File gửi dạng base64 trong JSON nên không cần `python-multipart`; file không được lưu,
+  chỉ giữ tên và phần text dán kèm để đối chiếu.
+- **Trường job:** chức danh, công ty, địa điểm, hình thức (remote/hybrid/onsite), cấp bậc, loại hợp đồng,
+  lương (khoảng, đơn vị triệu VND/USD, kỳ, thoả thuận), số lượng, hạn nộp, kỹ năng, mô tả/yêu cầu/quyền lợi,
+  liên hệ (email, SĐT, người liên hệ, link ứng tuyển). Claude không bịa: thiếu thì để trống và ghi rõ
+  trường nào là suy luận (`inferred`). Giá trị lạ bị `jobs.clean_job` bỏ; link ứng tuyển chỉ nhận http(s).
+- **Duyệt (`/admin/jobs/<id>`):** form chỉnh sửa + bản xem trước đúng như trên site (cùng template),
+  thanh tóm tắt liệt kê ô thiếu / suy luận, bấm để nhảy tới ô. Trên điện thoại có tab Chỉnh sửa | Kết quả.
+- **Công khai:** `/viec-lam` (tìm không dấu, lọc hình thức / cấp bậc / có ghi lương) và `/viec-lam/<slug>`.
+  Tin hết hạn mờ đi và xếp cuối; tin nháp không truy cập được. Job đã đăng vào `sitemap.xml`.
+- **Cấu hình:** `MODEL_JOB` (mặc định `claude-sonnet-5`). Các route `/admin/jobs*` dùng chung Basic Auth
+  của `/admin/*`.
+- **Chưa có:** tài khoản/lưu job, phân trang `/viec-lam` (hiện tối đa 100 tin), tự đóng tin hết hạn
+  (chỉ hiển thị "đã hết hạn" theo `deadline`).
 
 ## Giới hạn đã biết
 

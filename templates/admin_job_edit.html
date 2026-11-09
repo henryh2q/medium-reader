@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ j.title }} · Duyệt job{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/jobs.css">{% endblock %}
+
+{% macro flag(k) %}{% if flags[k] == 'miss' %}<span class="flag miss">thiếu</span>{% elif flags[k] == 'inf' %}<span class="flag inf">suy luận</span>{% endif %}{% endmacro %}
+{% macro fcls(k) %}{% if flags[k] == 'miss' %}missing{% elif flags[k] == 'inf' %}inferred{% endif %}{% endmacro %}
+{% macro opts(pairs, cur) %}{% for v, l in pairs %}<option value="{{ v }}"{% if v == cur %} selected{% endif %}>{{ l }}</option>{% endfor %}{% endmacro %}
+
+{% block content %}
+{# from_ai: bản nháp vừa được AI trích xuất -> mở sẵn tab Kết quả + hiện thanh tóm tắt #}
+{% set from_ai = (j.source_text or j.source_file) and j.status == 'draft' %}
+<a href="/admin/jobs#{{ j.id }}" class="back-link" style="margin:1rem 1.25rem 0">← Danh sách job</a>
+<div class="jb-app" id="rv-root" data-id="{{ j.id }}" style="margin-top:.6rem">
+  <div class="rv-sticky">
+    <header class="jb-top">
+      <span class="rv-title">{{ 'Duyệt kết quả AI' if from_ai else 'Sửa job' }}</span>
+      <span class="status {{ j.state }}">{{ j.state_label }}</span>
+      <div class="rv-actions">
+        <a class="jb-ghost" href="/admin/jobs#{{ j.id }}">Huỷ</a>
+        {% if j.status == 'draft' %}
+        <button class="jb-ghost" type="button" data-save="save">Lưu nháp</button>
+        <button class="jb-apply" type="button" data-save="publish">Đăng</button>
+        {% else %}
+        <button class="jb-apply" type="button" data-save="save">Lưu thay đổi</button>
+        {% endif %}
+      </div>
+    </header>
+    <div class="rv-tabs"><button type="button" class="{{ '' if from_ai else 'on' }}" data-tab="edit">Chỉnh sửa</button><button type="button" class="{{ 'on' if from_ai else '' }}" data-tab="result">Kết quả</button></div>
+  </div>
+  {% if from_ai %}
+  <div class="rv-bar">
+    <div id="rv-chips"></div>
+    {% if j.ai_meta.notes %}<details class="rv-notes"><summary>Ghi chú của AI ({{ j.ai_meta.notes | length }})</summary><ul>{% for n in j.ai_meta.notes %}<li>{{ n }}</li>{% endfor %}</ul></details>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="jb-layout rv" id="rv-layout" data-view="{{ 'result' if from_ai else 'edit' }}">
+    <aside class="jb-list jb-form">
+      <form id="rv-form" onsubmit="return false">
+        <h3>Thông tin chính</h3>
+        <div class="field {{ fcls('title') }}" data-key="title"><label>Chức danh * {{ flag('title') }}</label><input name="title" value="{{ j.title }}" maxlength="200" required></div>
+        <div class="field {{ fcls('company') }}" data-key="company"><label>Công ty {{ flag('company') }}</label><input name="company" value="{{ j.company }}" maxlength="150"></div>
+        <div class="field {{ fcls('location') }}" data-key="location"><label>Địa điểm {{ flag('location') }}</label><input name="location" value="{{ j.location }}" maxlength="120"></div>
+        <div class="two">
+          <div class="field {{ fcls('mode') }}" data-key="mode"><label>Hình thức {{ flag('mode') }}</label>
+            <select name="mode"><option value="">— chưa rõ —</option>{{ opts(modes.items(), j.mode) }}</select></div>
+          <div class="field {{ fcls('type') }}" data-key="type"><label>Loại hợp đồng {{ flag('type') }}</label>
+            <select name="type"><option value="">— chưa rõ —</option>{% for t in types %}<option value="{{ t }}"{% if t == j.job_type %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="two">
+          <div class="field {{ fcls('level') }}" data-key="level"><label>Cấp bậc {{ flag('level') }}</label>
+            <input name="level" value="{{ j.level }}" list="levels" maxlength="60"><datalist id="levels">{% for l in levels %}<option>{{ l }}</option>{% endfor %}</datalist></div>
+          <div class="field {{ fcls('headcount') }}" data-key="headcount"><label>Số lượng tuyển {{ flag('headcount') }}</label><input name="headcount" type="number" min="1" value="{{ j.headcount or '' }}"></div>
+        </div>
+        <div class="field {{ fcls('deadline') }}" data-key="deadline"><label>Hạn nộp hồ sơ {{ flag('deadline') }}</label><input name="deadline" type="date" value="{{ j.deadline }}"></div>
+
+        <h3>Mức lương</h3>
+        <div class="field {{ fcls('salary') }}" data-key="salary"><label>Khoảng lương {{ flag('salary') }}</label>
+          <div class="salary-row">
+            <input name="salary_min" type="number" min="0" step="any" placeholder="Từ" value="{{ j.salary_min if j.salary_min is not none else '' }}">
+            <input name="salary_max" type="number" min="0" step="any" placeholder="Đến" value="{{ j.salary_max if j.salary_max is not none else '' }}">
+            <select name="salary_unit">{% for u in units %}<option value="{{ u }}"{% if u == j.salary_unit %} selected{% endif %}>{{ u }}</option>{% endfor %}</select>
+            <select name="salary_per">{% for p in pers %}<option value="{{ p }}"{% if p == j.salary_per %} selected{% endif %}>/ {{ p }}</option>{% endfor %}</select>
+          </div>
+          <label class="check"><input type="checkbox" name="salary_nego"{% if j.salary_nego %} checked{% endif %}> Lương thoả thuận (ẩn số)</label>
+        </div>
+
+        <h3>Kỹ năng &amp; nội dung</h3>
+        <div class="field {{ fcls('skills') }}" data-key="skills"><label>Kỹ năng <small>(cách nhau bằng dấu phẩy)</small> {{ flag('skills') }}</label><input name="skills" value="{{ j.skills | join(', ') }}"></div>
+        <div class="field {{ fcls('desc') }}" data-key="desc"><label>Mô tả công việc <small>(mỗi dòng một ý)</small> {{ flag('desc') }}</label><textarea name="description" rows="4">{{ j.description | join('\n') }}</textarea></div>
+        <div class="field {{ fcls('req') }}" data-key="req"><label>Yêu cầu {{ flag('req') }}</label><textarea name="requirements" rows="4">{{ j.requirements | join('\n') }}</textarea></div>
+        <div class="field {{ fcls('ben') }}" data-key="ben"><label>Quyền lợi {{ flag('ben') }}</label><textarea name="benefits" rows="4">{{ j.benefits | join('\n') }}</textarea></div>
+
+        <h3>Thông tin liên hệ</h3>
+        <div class="two">
+          <div class="field {{ fcls('email') }}" data-key="email"><label>Email {{ flag('email') }}</label><input name="contact_email" type="email" value="{{ j.contact_email }}"></div>
+          <div class="field {{ fcls('phone') }}" data-key="phone"><label>SĐT / Zalo {{ flag('phone') }}</label><input name="contact_phone" value="{{ j.contact_phone }}" maxlength="40"></div>
+        </div>
+        <div class="two">
+          <div class="field {{ fcls('person') }}" data-key="person"><label>Người liên hệ {{ flag('person') }}</label><input name="contact_person" value="{{ j.contact_person }}" maxlength="120"></div>
+          <div class="field {{ fcls('link') }}" data-key="link"><label>Link ứng tuyển {{ flag('link') }}</label><input name="contact_link" type="url" placeholder="https://" value="{{ j.contact_link }}"></div>
+        </div>
+      </form>
+      {% if j.source_text or j.source_file %}
+      <details><summary>Nội dung gốc</summary>
+        {% if j.source_file %}<div class="file-chip" style="margin-top:.6rem"><span class="file-ext">{{ j.source_file.rsplit('.', 1)[-1][:4] }}</span><span>{{ j.source_file }}</span></div>{% endif %}
+        {% if j.source_text %}<div class="src-text">{{ j.source_text }}</div>{% elif j.source_file %}<p class="hint">Chỉ có file, không có text dán kèm.</p>{% endif %}
+      </details>
+      {% endif %}
+      <p class="hint">Ô <b>vàng</b> = không tìm thấy trong nguồn · ô <b>tím</b> = AI suy luận, nên kiểm tra.</p>
+    </aside>
+    <section class="jb-detail" id="rv-preview" aria-label="Xem trước trên site người dùng">{% include "_job_preview.html" %}</section>
+  </div>
+</div>
+<script src="/static/admin_job_edit.js"></script>
+{% endblock %}

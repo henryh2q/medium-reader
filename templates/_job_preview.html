@@ -1,0 +1,6 @@
+{# Bản xem trước ở form duyệt job: thẻ trong danh sách + trang chi tiết, y như trên site. #}
+{% from "_job_macros.html" import card_inner %}
+<div class="jb-prev-label"><span>Thẻ trong danh sách</span><span>Xem trước · cập nhật khi bạn gõ</span></div>
+<div id="rv-preview-card"><div class="jb-card sel">{{ card_inner(j) }}</div></div>
+<div class="jb-prev-label"><span>Trang chi tiết</span></div>
+{% with preview=true %}{% include "_job_detail.html" %}{% endwith %}

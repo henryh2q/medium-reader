@@ -1,6 +1,11 @@
 """Các lời gọi Claude: dịch, giải thích thuật ngữ."""
+import base64
+import html
+import io
 import json
 import re
+import zipfile
+from datetime import date
 
 from anthropic import Anthropic
 
@@ -172,3 +177,84 @@ def summarize_key_points(title: str, content: str) -> dict:
         "tldr": (data.get("tldr") or "").strip(),
         "points": [p.strip() for p in data.get("points", []) if isinstance(p, str) and p.strip()],
     }
+
+
+
+# ---------- 5. Trích xuất tin tuyển dụng ----------
+
+JOB_EXTRACT_SYSTEM = """You extract ONE job posting into a fixed JSON format for a Vietnamese IT job board.
+The input is whatever the admin pasted or uploaded: a Facebook/LinkedIn post, an email, a
+full JD, a PDF, a screenshot. Today is {today}.
+
+Rules:
+- Use only what the source says. Never invent a company, salary, contact or deadline. If a
+  field is not in the source use null / "" / [].
+- Keep the source language for text (Vietnamese stays Vietnamese, English stays English); do
+  not translate. Write bullets as short, self-contained lines without bullet symbols/emoji.
+- If the source holds several jobs, extract the first/most complete one and say so in notes.
+- mode: "remote" | "hybrid" | "onsite" | null.
+- type: "Full-time" | "Part-time" | "Contract" | "Intern" | null.
+- level: short label such as "Intern", "Fresher / Junior", "Mid", "Senior", "Lead+", "Mid – Senior".
+- location: normalized city, e.g. "TP. Hồ Chí Minh" (HCM, Sài Gòn, Q.7 -> that), "Hà Nội", "Đà Nẵng".
+- salary: min/max as plain numbers. unit "triệu VND" (40-60tr -> 40 and 60) or "USD". per: "tháng" |
+  "năm" | "giờ". negotiable=true when the source says negotiable/thoả thuận and gives no figure.
+- deadline: YYYY-MM-DD; assume the nearest upcoming year when the year is missing.
+- skills: canonical technology names (Go, Kubernetes, PostgreSQL, Spring Boot...), at most 10.
+- description / requirements / benefits: lists of lines, split into the right section.
+- contact: email, phone, person (name + role if given), link (application URL). Copy exactly.
+- inferred: names of fields you had to GUESS rather than read (e.g. "type", "level", "mode",
+  "company"). Fields stated explicitly in the source must not be listed.
+- notes: 0-4 short Vietnamese remarks the admin should know (normalizations done, ambiguity,
+  missing key info, multiple jobs found).
+
+Return ONLY JSON:
+{{"title": "", "company": "", "location": "", "mode": null, "level": "", "type": null,
+ "salary": {{"min": null, "max": null, "unit": "triệu VND", "per": "tháng", "negotiable": false}},
+ "headcount": null, "deadline": null, "skills": [],
+ "description": [], "requirements": [], "benefits": [],
+ "contact": {{"email": "", "phone": "", "person": "", "link": ""}},
+ "inferred": [], "notes": []}}"""
+
+_IMAGE_TYPES = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+                "webp": "image/webp", "gif": "image/gif"}
+JOB_FILE_EXTS = ("pdf", "docx", "txt", "md", *_IMAGE_TYPES)
+
+
+def _docx_text(data: bytes) -> str:
+    """Lấy chữ từ .docx (zip + XML), không cần thư viện ngoài."""
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        xml = z.read("word/document.xml").decode("utf-8", "replace")
+    xml = re.sub(r"</w:p>|<w:br\s*/>|<w:tab\s*/>", "\n", xml)
+    return html.unescape(re.sub(r"<[^>]+>", "", xml))
+
+
+def extract_job(text: str, filename: str = "", data: bytes | None = None) -> dict:
+    """Đọc text và/hoặc 1 file (pdf, docx, txt/md, ảnh) rồi trả về dict thô theo định dạng
+    ở JOB_EXTRACT_SYSTEM. Việc làm sạch/kiểm tra giá trị do jobs.py đảm nhiệm."""
+    content: list[dict] = []
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    text = text.strip()
+    if data:
+        if ext == "pdf":
+            content.append({"type": "document", "source": {
+                "type": "base64", "media_type": "application/pdf",
+                "data": base64.standard_b64encode(data).decode()}})
+        elif ext in _IMAGE_TYPES:
+            content.append({"type": "image", "source": {
+                "type": "base64", "media_type": _IMAGE_TYPES[ext],
+                "data": base64.standard_b64encode(data).decode()}})
+        elif ext == "docx":
+            text = f"{text}\n\n{_docx_text(data)}".strip()
+        else:  # txt / md
+            text = f"{text}\n\n{data.decode('utf-8', 'replace')}".strip()
+    if text:
+        content.append({"type": "text", "text": f"Job posting text:\n{text[:40_000]}"})
+    if not content:
+        raise ValueError("Không có nội dung để trích xuất.")
+    resp = client().messages.create(
+        model=config.MODEL_JOB,
+        max_tokens=2500,
+        system=JOB_EXTRACT_SYSTEM.format(today=date.today().isoformat()),
+        messages=[{"role": "user", "content": content}],
+    )
+    return _parse_json("".join(b.text for b in resp.content if b.type == "text"))

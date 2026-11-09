@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_job_macros.html" import card_inner %}
+{% block title %}Việc làm · Admin{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/jobs.css">{% endblock %}
+{% block content %}
+<div class="jb-app">
+  <header class="jb-top">
+    <a href="/" class="jb-brand">Đọc gì hôm nay</a><span class="badge-brief">Admin</span>
+    <nav class="admin-nav"><a href="/admin/queue">Hàng đợi link</a><a href="/admin/requests">Yêu cầu token</a><a href="/admin/jobs" class="active">Việc làm</a></nav>
+    <label class="jb-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="search" id="a-q" placeholder="Tìm job…" autocomplete="off" aria-label="Tìm job"></label>
+    <a class="jb-apply" href="/admin/jobs/new">+ Đăng job</a>
+  </header>
+  <div class="jb-filters" id="a-filters">
+    {% for key, label in [('all', 'Tất cả'), ('published', 'Đang đăng'), ('draft', 'Bản nháp'), ('expired', 'Hết hạn')] %}
+    <button class="jb-pill{% if loop.first %} on{% endif %}" type="button" data-filter="{{ key }}">{{ label }} · {{ jobs | length if key == 'all' else jobs | selectattr('state', 'equalto', key) | list | length }}</button>
+    {% endfor %}
+  </div>
+  <div class="jb-layout" id="a-layout" data-view="list">
+    <aside class="jb-list" id="a-list" aria-label="Danh sách job">
+      <div class="jb-list-head" id="a-count"></div>
+      {% for j in jobs %}
+      <article class="jb-card{% if j.state == 'expired' %} expired{% endif %}" data-id="{{ j.id }}" data-state="{{ j.state }}" data-search="{{ j.search }}">{{ card_inner(j, true) }}</article>
+      {% endfor %}
+      <div class="u-empty" id="a-empty"{% if jobs %} hidden{% endif %}>{% if jobs %}Không có job nào khớp.{% else %}Chưa có job nào. Bấm “+ Đăng job” để thêm từ text hoặc file.{% endif %}</div>
+    </aside>
+    <section class="jb-detail" id="a-detail" aria-label="Chi tiết job">
+      <button class="jb-back" type="button" id="a-back">← Danh sách</button>
+      <div id="a-detail-body"></div>
+    </section>
+  </div>
+</div>
+
+{# Chi tiết từng job dựng sẵn ở server (cùng template với trang công khai), JS chỉ chép ra khung phải. #}
+{% for j in jobs %}<template id="tpl-{{ j.id }}">{% with j=j, admin=true %}{% include "_job_detail.html" %}{% endwith %}</template>{% endfor %}
+<script src="/static/admin_jobs.js"></script>
+{% endblock %}

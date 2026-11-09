@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype — Việc làm | Đọc gì hôm nay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
+<style>:root {
+  --paper: #eef2f4;
+  --sheet: #ffffff;
+  --ink: #1b2631;
+  --muted: #5a6875;
+  --rule: #d3dbe1;
+  --accent: #1d5d86;
+  --marker: #ffe27a;
+  --ui: "Be Vietnam Pro", system-ui, sans-serif;
+  --read: "Literata", Georgia, serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #131a21;
+    --sheet: #1b242d;
+    --ink: #e2e8ee;
+    --muted: #93a2af;
+    --rule: #2b3642;
+    --accent: #83b8dc;
+    --marker: rgba(255, 214, 90, 0.34);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1rem/1.55 var(--ui);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Thanh tiến độ vô định: hiện khi có bài đang dịch, không biểu thị % cụ thể */
+.progress-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 50; overflow: hidden; background: transparent; }
+.progress-bar[hidden] { display: none; }
+.progress-bar-fill { position: absolute; top: 0; bottom: 0; width: 40%; background: var(--accent); animation: progress-slide 1.1s ease-in-out infinite; }
+@keyframes progress-slide {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .progress-bar-fill { animation-duration: 2.4s; } }
+
+/* ---------- Danh sách ---------- */
+.shelf { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+.shelf-head h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
+.shelf-head p { color: var(--muted); margin: 0 0 1.25rem; }
+
+.topic-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1.5rem; }
+.topic-pill {
+  font-size: 0.8125rem; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--rule); border-radius: 999px; padding: 0.3rem 0.75rem;
+}
+.topic-pill:hover { color: var(--ink); border-color: var(--accent); }
+.topic-pill.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.topics { margin: 0.5rem 0 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.topic-pill-sm {
+  font-size: 0.75rem; color: var(--accent); text-decoration: none;
+  background: var(--sheet); border-radius: 999px; padding: 0.15rem 0.6rem;
+}
+.topic-pill-sm:hover { text-decoration: underline; }
+
+.entries { list-style: none; margin: 0; padding: 0; }
+.entry {
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--rule);
+}
+.entry[data-status="translating"] { opacity: 0.5; pointer-events: none; }
+.entry[data-status="translating"] h2 a { pointer-events: auto; }
+.entry h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; }
+.entry h2 a { color: var(--ink); text-decoration: none; }
+.entry h2 a:hover { color: var(--accent); }
+.desc {
+  color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; color: var(--muted); font-size: 0.8125rem; margin: 0.6rem 0 0; }
+.tag { color: var(--ink); background: var(--marker); padding: 0 0.35rem; border-radius: 2px; }
+.tag-err { background: #f6c6c0; }
+.tag-done { background: #cdeccb; }
+.translate-one {
+  display: inline-flex; align-items: center; justify-content: center;
+  vertical-align: middle; margin-left: 0.5rem;
+  color: var(--accent); background: none;
+  border: 1px solid var(--rule); border-radius: 999px; width: 1.75rem; height: 1.75rem;
+  cursor: pointer; padding: 0;
+}
+.translate-one:hover { background: var(--sheet); }
+.translate-one:disabled { opacity: 0.55; cursor: default; }
+.translate-icon { display: block; }
+.batch-fab .translate-icon { width: 20px; height: 20px; }
+.spinner {
+  display: inline-block; vertical-align: middle; margin-left: 0.5rem;
+  width: 1.1rem; height: 1.1rem; border-radius: 999px;
+  border: 2px solid var(--rule); border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.6s; } }
+.empty pre { background: var(--sheet); padding: 0.75rem 1rem; border-radius: 6px; }
+
+/* ---------- Nút nổi: gửi bài / dịch hàng loạt ---------- */
+.batch-fab {
+  position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 25;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 3.25rem; height: 3.25rem; border-radius: 999px; box-sizing: border-box;
+  font-size: 1.4rem; line-height: 1; color: var(--paper); background: var(--ink);
+  border: 0; cursor: pointer; text-decoration: none; box-shadow: 0 8px 20px rgba(10, 20, 30, 0.3);
+}
+.batch-fab:hover { background: var(--accent); color: var(--paper); }
+
+/* ---------- Modal dịch hàng loạt ---------- */
+.modal {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(10, 20, 30, 0.45);
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+.modal[hidden] { display: none; }
+.modal-box {
+  background: var(--sheet); border-radius: 10px; max-width: 32rem; width: 100%;
+  max-height: 80vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 48px rgba(10, 20, 30, 0.3);
+}
+.modal-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--rule); font-weight: 600; }
+.modal-all { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.1rem; border-bottom: 1px solid var(--rule); font-size: 0.875rem; }
+.modal-all[hidden] { display: none; }
+.batch-list { list-style: none; margin: 0; padding: 0.5rem 1.1rem; overflow-y: auto; }
+.batch-list li { padding: 0.4rem 0; }
+.batch-list label { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; }
+.batch-submit {
+  margin: 0.75rem 1.1rem 1.1rem; font: 600 0.875rem var(--ui); color: var(--paper);
+  background: var(--ink); border: 0; border-radius: 6px; padding: 0.6rem; cursor: pointer;
+}
+.batch-submit:disabled { opacity: 0.55; cursor: default; }
+
+/* ---------- Trang đọc ---------- */
+.reader { max-width: 42rem; margin: 0 auto; padding: 1.25rem 1.25rem 6rem; }
+.reader-nav { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-size: 0.9rem; }
+.lang-switch { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 2px; background: var(--sheet); }
+.lang-switch button {
+  font: 500 0.8125rem var(--ui); color: var(--muted);
+  border: 0; background: none; padding: 0.3rem 0.8rem; border-radius: 999px; cursor: pointer;
+}
+.lang-switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+.reader-head { margin: 2.5rem 0 2rem; }
+.reader-head h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); line-height: 1.2; font-weight: 700; letter-spacing: -0.015em; margin: 0; }
+.hint { color: var(--muted); font-size: 0.8125rem; margin: 1rem 0 0; }
+
+.back-to-top {
+  position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 25;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.75rem; height: 2.75rem; border-radius: 999px; box-sizing: border-box;
+  font-size: 1.25rem; line-height: 1; color: var(--ink); background: var(--sheet);
+  border: 1px solid var(--rule); cursor: pointer; box-shadow: 0 4px 12px rgba(10, 20, 30, 0.15);
+}
+.back-to-top[hidden] { display: none; }
+.back-to-top:hover { color: var(--accent); border-color: var(--accent); }
+body.panel-open .back-to-top { display: none; }
+
+.summary-btn {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 25;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.5rem; height: 3rem; padding: 0;
+  color: var(--paper); background: var(--ink); border: 0; cursor: pointer;
+  border-radius: 10px 0 0 10px; box-shadow: 0 4px 12px rgba(10, 20, 30, 0.25);
+}
+.summary-btn:hover { background: var(--accent); }
+body.panel-open .summary-btn { display: none; }
+@media (max-width: 40rem) {
+  .summary-btn {
+    top: auto; bottom: 4.5rem; right: 1.25rem; transform: none;
+    width: 2.75rem; height: 2.75rem; border-radius: 999px;
+  }
+}
+.x-points { margin: 0; padding-left: 1.25rem; font-family: var(--read); line-height: 1.65; }
+.x-points li { margin: 0 0 0.6rem; }
+
+/* ---------- Trang /submit, feedback modal ---------- */
+.back-link { display: inline-block; color: var(--muted); font-size: 0.875rem; text-decoration: none; margin-bottom: 1rem; }
+.back-link:hover { color: var(--accent); }
+.form-block { margin-top: 2rem; }
+.form-block h2 { font-size: 1.15rem; margin: 0 0 0.75rem; }
+.form-block label { display: block; font-size: 0.875rem; color: var(--muted); margin: 0 0 0.4rem; }
+.form-block input, .form-block textarea {
+  width: 100%; box-sizing: border-box; padding: 0.6rem 0.75rem; font: inherit;
+  border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+.form-block button {
+  font: 600 0.875rem var(--ui); color: var(--paper); background: var(--ink);
+  border: 0; border-radius: 6px; padding: 0.6rem 1rem; cursor: pointer;
+}
+.form-block button:disabled { opacity: 0.55; cursor: default; }
+.token-box { display: block; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 0.75rem; word-break: break-all; font-size: 0.9rem; }
+.submit-instructions { padding-left: 1.25rem; line-height: 1.7; }
+.submit-instructions li { margin-bottom: 0.5rem; }
+
+.feedback-fab {
+  position: fixed; left: 1.25rem; bottom: 1.25rem; z-index: 25;
+  font: 600 0.8125rem var(--ui); color: var(--muted); background: var(--sheet);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 0.5rem 0.9rem;
+  cursor: pointer; box-shadow: 0 4px 12px rgba(10, 20, 30, 0.1);
+}
+.feedback-fab:hover { color: var(--ink); border-color: var(--accent); }
+.feedback-body.form-block { margin-top: 0.5rem; padding: 0 1.1rem 1.1rem; }
+.feedback-body select {
+  width: 100%; box-sizing: border-box; padding: 0.6rem 0.75rem; font: inherit;
+  border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+
+body[data-lang="vi"] .lang-en,
+body[data-lang="en"] .lang-vi { display: none; }
+
+.prose { font-family: var(--read); font-size: 1.125rem; line-height: 1.75; }
+.prose h1, .prose h2, .prose h3, .prose h4 { font-family: var(--ui); line-height: 1.3; margin: 2.2rem 0 0.6rem; }
+.prose h1 { font-size: 1.45rem; } .prose h2 { font-size: 1.3rem; } .prose h3 { font-size: 1.12rem; }
+.prose p, .prose ul, .prose ol, .prose blockquote { margin: 0 0 1.2rem; }
+.prose img { max-width: 100%; height: auto; border-radius: 4px; }
+.prose blockquote { border-left: 3px solid var(--rule); padding-left: 1rem; color: var(--muted); font-style: italic; }
+.prose code { font-size: 0.88em; background: var(--sheet); padding: 0.1em 0.3em; border-radius: 3px; }
+.prose pre { background: var(--sheet); border: 1px solid var(--rule); padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+.prose pre code { background: none; padding: 0; }
+.prose table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.95rem; }
+.prose td, .prose th { border: 1px solid var(--rule); padding: 0.4rem 0.6rem; }
+
+.attribution {
+  margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
+  color: var(--muted); font-size: 0.8125rem; line-height: 1.6;
+}
+
+/* Thuật ngữ đã tra: vệt bút dạ quang, chạm để xem lại */
+mark.term {
+  background: linear-gradient(transparent 55%, var(--marker) 55%);
+  color: inherit; cursor: pointer; padding: 0 1px;
+}
+
+/* ---------- Nút & panel giải thích ---------- */
+.explain-btn {
+  position: absolute; z-index: 20;
+  font: 600 0.875rem var(--ui);
+  color: var(--paper); background: var(--ink);
+  border: 0; border-radius: 6px; padding: 0.5rem 0.85rem;
+  box-shadow: 0 6px 18px rgba(10, 20, 30, 0.22);
+  cursor: pointer;
+}
+
+.panel {
+  position: fixed; z-index: 30;
+  right: 0; top: 0; bottom: 0;
+  width: min(24rem, 100%);
+  background: var(--sheet);
+  border-left: 1px solid var(--rule);
+  box-shadow: -12px 0 32px rgba(10, 20, 30, 0.12);
+  display: flex; flex-direction: column;
+  animation: slide-in 0.18s ease-out;
+}
+@keyframes slide-in { from { transform: translateX(16px); opacity: 0; } }
+.panel[hidden] { display: none; }
+.panel-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--rule); }
+.panel-label { font-size: 0.8125rem; color: var(--muted); }
+.panel-close { font-size: 1.5rem; line-height: 1; border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 0.25rem; }
+.panel-body { overflow-y: auto; padding: 1.25rem 1.25rem 2rem; }
+
+.x-term { font-size: 1.4rem; font-weight: 700; margin: 0; }
+.x-term span { background: linear-gradient(transparent 55%, var(--marker) 55%); }
+.x-pronunciation { display: flex; flex-wrap: wrap; gap: 0 0.6rem; margin: 0.3rem 0 0; font-size: 0.875rem; color: var(--muted); }
+.x-ipa { font-family: var(--read); font-style: italic; }
+.x-short { font-family: var(--read); font-size: 1.05rem; line-height: 1.6; margin: 0.6rem 0 0; }
+.x-section { margin-top: 1.4rem; }
+.x-section h3 { font-size: 0.875rem; font-weight: 600; color: var(--accent); margin: 0 0 0.35rem; }
+.x-section p { font-family: var(--read); line-height: 1.65; margin: 0 0 0.6rem; }
+.x-section pre { background: var(--paper); border-radius: 6px; padding: 0.75rem; overflow-x: auto; font-size: 0.8rem; line-height: 1.5; margin: 0.5rem 0 0; }
+.x-status { color: var(--muted); }
+.x-error { color: #b3261e; }
+
+@media (max-width: 40rem) {
+  .panel {
+    top: auto; left: 0; width: 100%; max-height: 72vh;
+    border-left: 0; border-top: 1px solid var(--rule);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -12px 32px rgba(10, 20, 30, 0.16);
+    animation-name: sheet-up;
+  }
+  @keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } }
+  .prose { font-size: 1.0625rem; }
+}
+@media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
+
+/* Màn hình rộng: đẩy bài sang trái để panel không che chữ */
+@media (min-width: 72rem) {
+  .reader { transition: transform 0.18s ease-out; }
+  body.panel-open .reader { transform: translateX(-12rem); }
+}
+@media (min-width: 72rem) and (prefers-reduced-motion: reduce) { .reader { transition: none; } }
+
+/* ---------- Hàng đợi link (admin) + mục extension ở /submit ---------- */
+.admin-nav { display: flex; gap: 1rem; margin: 0 0 1rem; font-size: 0.875rem; }
+.admin-nav a { color: var(--muted); text-decoration: none; padding-bottom: 0.15rem; }
+.admin-nav a.active { color: var(--ink); border-bottom: 2px solid var(--accent); }
+.queue-actions { display: flex; gap: 0.6rem; margin: 0.75rem 0 0; }
+.queue-open, .reject-btn {
+  font: 600 0.8125rem var(--ui); border-radius: 6px; padding: 0.4rem 0.9rem;
+  cursor: pointer; text-decoration: none;
+}
+.queue-open { color: var(--paper); background: var(--ink); border: 1px solid var(--ink); }
+.queue-open:hover { background: var(--accent); border-color: var(--accent); }
+.reject-btn { color: var(--muted); background: none; border: 1px solid var(--rule); }
+.reject-btn:hover { color: #b3261e; border-color: #b3261e; }
+.reject-btn:disabled { opacity: 0.55; cursor: default; }
+.extension-details { margin-top: 2rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+.extension-details summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+.extension-details summary:hover { color: var(--ink); }
+
+/* ---------- Chia sẻ bài viết ---------- */
+.share-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0; }
+.share-action {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font: 500 0.8125rem var(--ui); color: var(--muted); background: var(--sheet);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 0.35rem 0.8rem; cursor: pointer;
+}
+.share-action[hidden] { display: none; }
+.share-action:hover { color: var(--ink); border-color: var(--accent); }
+
+/* ---------- Tìm kiếm ở trang chủ ---------- */
+.search-form { display: flex; gap: 0.4rem; margin: 0 0 1rem; }
+.search-form input[type="search"] {
+  flex: 1; min-width: 0; font: inherit; font-size: 1rem; color: var(--ink);
+  background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; padding: 0.55rem 1rem;
+  -webkit-appearance: none; appearance: none;
+}
+.search-form input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.search-form button {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 2.6rem; color: var(--paper); background: var(--ink); border: 0; border-radius: 999px; cursor: pointer;
+}
+.search-form button:hover { background: var(--accent); }
+.search-summary { color: var(--muted); font-size: 0.875rem; margin: -0.5rem 0 1.25rem; }
+mark.hit { background: var(--marker); color: inherit; border-radius: 2px; padding: 0 0.1em; }
+.snippet { color: var(--muted); font-size: 0.85rem; font-style: italic; margin: 0.4rem 0 0; line-height: 1.5; }
+
+/* ---------- Nút dịch ở trang đọc bài chưa dịch ---------- */
+.title-row h1 { display: inline; }
+.translate-one[hidden] { display: none; }
+.translate-head { vertical-align: middle; margin-left: 0.6rem; width: 2rem; height: 2rem; }
+.translate-head .translate-icon { width: 18px; height: 18px; }
+.translate-bar:has(> :not([hidden])) { margin: 0.9rem 0 0; }
+.translate-status[hidden], .translate-error[hidden], .translate-reload[hidden] { display: none; }
+.translate-status { display: flex; align-items: center; gap: 0.6rem; margin: 0; font-size: 0.875rem; color: var(--muted); }
+.translate-status .spinner { margin-left: 0; }
+.translate-error { margin: 0; font-size: 0.8125rem; color: #b3261e; }
+.translate-reload {
+  font: 600 0.8125rem var(--ui); color: var(--paper); background: var(--ink);
+  border: 0; border-radius: 999px; padding: 0.4rem 0.9rem; cursor: pointer;
+}
+.translate-reload:hover { background: var(--accent); }
+.translated-body { padding: 1.1rem; }
+.translated-body p { margin: 0; }
+.translated-body .batch-submit { margin: 1rem 0 0; width: 100%; }
+
+/* ---- khung prototype ---- */
+body { padding-bottom: 3rem; }
+.proto-bar { position: sticky; top: 0; z-index: 50; background: var(--sheet); border-bottom: 1px solid var(--rule); padding: 0.6rem 1rem; display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.proto-bar b { margin-right: 0.6rem; font-size: 0.75rem; color: #b3261e; letter-spacing: 0.02em; }
+.proto-tab { font: 500 0.8125rem var(--ui); border: 1px solid var(--rule); background: none; border-radius: 999px; padding: 0.3rem 0.8rem; color: var(--muted); cursor: pointer; }
+.proto-tab:hover { color: var(--ink); border-color: var(--accent); }
+.proto-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.proto-screen { display: none; padding: 1.25rem 1rem 3rem; }
+.proto-screen.active { display: block; }
+.proto-note { max-width: 46rem; margin: 0 auto 1rem; background: #fff6d6; border: 1px solid #e8d48a; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; line-height: 1.55; color: #4d3f00; }
+.proto-note code { background: rgba(0,0,0,0.07); padding: 0 0.25rem; border-radius: 3px; }
+.seg { display: inline-flex; border: 1px solid #d9c46a; border-radius: 999px; padding: 2px; background: #fffbea; }
+.seg-btn { font: 500 0.8rem var(--ui); border: 0; background: none; padding: 0.3rem 0.8rem; border-radius: 999px; color: #6b5a00; cursor: pointer; }
+.seg-btn.active { background: #4d3f00; color: #fff; }
+
+/* ---- tab Bài viết | Việc làm ---- */
+.site-tabs { display: flex; gap: 1.4rem; margin: 0 0 1rem; border-bottom: 1px solid var(--rule); }
+.site-tabs a { padding: 0.5rem 0; font-weight: 600; font-size: 0.95rem; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.site-tabs a.active { color: var(--ink); border-bottom-color: var(--accent); }
+.site-tabs .count { font-weight: 500; font-size: 0.72rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; padding: 0 0.45rem; margin-left: 0.4rem; }
+
+/* ---- bộ lọc + thẻ job ---- */
+.filter-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.6rem; align-items: center; }
+.filter-label { font-size: 0.75rem; color: var(--muted); min-width: 4.2rem; }
+.select-pill { font: inherit; font-size: 0.8125rem; color: var(--muted); background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; padding: 0.3rem 0.8rem; }
+.job-card { padding: 1.25rem 0; border-top: 1px solid var(--rule); list-style: none; }
+.job-card[hidden] { display: none; }
+.job-top { display: flex; gap: 0.6rem; align-items: baseline; justify-content: space-between; }
+.job-card h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; }
+.job-card h2 a { color: var(--ink); text-decoration: none; }
+.job-card h2 a:hover { color: var(--accent); }
+.job-company { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--ink); }
+.job-facts { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 0; }
+.fact { font-size: 0.78rem; border: 1px solid var(--rule); border-radius: 6px; padding: 0.1rem 0.55rem; color: var(--muted); background: var(--sheet); }
+.fact.salary { color: #14633a; border-color: #a9d9bb; background: #eaf7ef; font-weight: 600; }
+.badge-new, .badge-brief, .badge-expired { flex-shrink: 0; font-size: 0.7rem; font-weight: 600; border-radius: 4px; padding: 0.1rem 0.45rem; }
+.badge-new { background: var(--marker); color: #3d3000; }
+.badge-brief { background: #e3ecf7; color: #1d4a73; }
+.badge-expired { background: #ececec; color: #666; }
+.job-card.expired { opacity: 0.55; }
+.job-card .meta .src { color: var(--accent); }
+
+/* ---- chi tiết job ---- */
+.facts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 1.5rem; margin: 1.25rem 0; padding: 1rem 1.25rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; }
+.facts-grid small { display: block; color: var(--muted); font-size: 0.75rem; margin-bottom: 0.15rem; }
+.facts-grid b { font-weight: 600; font-size: 0.95rem; }
+.salary-text { color: #14633a; }
+.job-prose h3 { font-size: 1.05rem; margin: 1.4rem 0 0.5rem; }
+.apply-box { margin-top: 1.5rem; background: var(--sheet); border: 1px solid var(--accent); border-radius: 10px; padding: 1rem 1.25rem; }
+.apply-box h3 { margin: 0 0 0.6rem; font-size: 1.05rem; }
+.apply-box dl { display: grid; grid-template-columns: 8.5rem 1fr; gap: 0.4rem 1rem; margin: 0; }
+.apply-box dt { color: var(--muted); font-size: 0.85rem; }
+.apply-box dd { margin: 0; font-size: 0.95rem; }
+.source-box { margin: 1.25rem 0 0; font-size: 0.8125rem; color: var(--muted); line-height: 1.6; }
+.brief-banner { background: #e3ecf7; color: #1d4a73; border-radius: 8px; padding: 0.7rem 1rem; font-size: 0.875rem; margin-bottom: 1rem; }
+.variant[hidden] { display: none; }
+.step .device .m-screen, .step .device .field label { text-align: left; }
+.facts-grid .topic-pill-sm { background: var(--paper); }
+
+/* ---- khung điện thoại + form ---- */
+.split { display: flex; gap: 2rem; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.device { position: relative; width: 390px; max-width: 100%; height: 780px; border: 10px solid #111; border-radius: 40px; overflow: hidden; background: var(--paper); box-shadow: 0 20px 50px rgba(10, 20, 30, 0.25); }
+.device.small { width: 300px; height: 560px; border-width: 8px; border-radius: 32px; }
+.device-status { display: flex; justify-content: space-between; padding: 0.7rem 1.4rem 0.2rem; font-size: 0.75rem; font-weight: 600; }
+.device .m-screen { height: calc(100% - 2rem); overflow-y: auto; padding: 0.8rem 1.1rem 2rem; }
+.device.small .m-screen { height: 100%; padding-top: 1.4rem; }
+.m-title { font-size: 1.6rem; margin: 0.3rem 0 0.2rem; }
+.field { margin-bottom: 0.9rem; }
+.field label, .contact legend { display: block; font-size: 0.8125rem; color: var(--muted); margin-bottom: 0.3rem; }
+.field small { display: block; color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem; }
+.field input, .field textarea, .field select { width: 100%; font: inherit; font-size: 0.95rem; padding: 0.55rem 0.7rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); color: var(--ink); }
+.field.missing input, .field.missing textarea { border-color: #e0a800; background: #fffbea; }
+.field.warn input { border-color: #6fa3d8; background: #f3f8fd; }
+.flag { font-size: 0.65rem; font-weight: 700; border-radius: 3px; padding: 0.05rem 0.35rem; margin-left: 0.3rem; vertical-align: middle; }
+.flag.miss { background: #fbe39b; color: #5b4300; }
+.flag.img { background: #cfe3f7; color: #1d4a73; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chip { font: 500 0.8125rem var(--ui); border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); border-radius: 999px; padding: 0.3rem 0.8rem; cursor: pointer; }
+.chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.thumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.add-tile, .thumb { width: 4.6rem; height: 4.6rem; border-radius: 10px; }
+.add-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem; border: 1.5px dashed var(--accent); background: none; color: var(--accent); font: 500 0.7rem var(--ui); cursor: pointer; }
+.thumb { position: relative; background: linear-gradient(135deg, #7aa7c7, #1d5d86); display: flex; align-items: flex-end; padding: 0.3rem; color: #fff; font-size: 0.65rem; }
+.thumb:nth-child(2n) { background: linear-gradient(135deg, #e0b36a, #b3741d); }
+.thumb:nth-child(3n) { background: linear-gradient(135deg, #8fc7a3, #2a7a4a); }
+.btn-primary { width: 100%; font: 600 0.95rem var(--ui); color: var(--paper); background: var(--ink); border: 0; border-radius: 10px; padding: 0.75rem; cursor: pointer; }
+.btn-primary:hover { background: var(--accent); }
+.btn-ghost { font: 600 0.875rem var(--ui); color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem 1rem; cursor: pointer; }
+.btn-ghost.danger { color: #b3261e; }
+.overlay { position: absolute; inset: 0; background: rgba(10, 20, 30, 0.5); display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.overlay[hidden] { display: none; }
+.overlay-box { background: var(--sheet); border-radius: 14px; padding: 1.4rem; width: 100%; display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; }
+.progress-inline { width: 100%; height: 4px; background: var(--rule); border-radius: 2px; overflow: hidden; position: relative; }
+.progress-inline div { position: absolute; top: 0; bottom: 0; width: 40%; background: var(--accent); animation: progress-slide 1.1s ease-in-out infinite; }
+.decisions { max-width: 24rem; font-size: 0.875rem; line-height: 1.6; color: var(--muted); padding-left: 1.1rem; }
+.decisions li { margin-bottom: 0.6rem; }
+.decisions code, .api-box code { background: var(--sheet); padding: 0 0.25rem; border-radius: 3px; }
+
+/* ---- duyệt bản nháp ---- */
+.draft-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 2rem; align-items: start; }
+.draft-form { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 1.25rem; }
+.contact { border: 1px solid var(--rule); border-radius: 8px; padding: 0.8rem 0.9rem 0.2rem; margin: 0 0 1rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.actions .btn-primary { width: auto; padding: 0.6rem 1.4rem; }
+.draft-side h3 { font-size: 0.95rem; margin: 0 0 0.6rem; }
+.src-img { height: 11rem; border-radius: 10px; background: linear-gradient(135deg, #cfd9e2, #aebccb); display: flex; align-items: flex-end; padding: 0.6rem; font-size: 0.75rem; color: #334; margin-bottom: 0.7rem; }
+.src-img.alt { height: 7rem; background: linear-gradient(135deg, #e6dccb, #cdbd9f); }
+.raw { font-size: 0.85rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem 0.8rem; }
+
+/* ---- Shortcut ---- */
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; justify-items: center; max-width: 72rem; margin: 0 auto; }
+.step { text-align: center; }
+.step h3 { margin: 0.6rem 0 0.8rem; font-size: 1rem; }
+.step-n { display: inline-flex; width: 1.7rem; height: 1.7rem; align-items: center; justify-content: center; border-radius: 999px; background: var(--ink); color: var(--paper); font-weight: 700; font-size: 0.85rem; }
+.sheet-bg { background: linear-gradient(#5d6b7a, #3b4652); padding: 0 !important; display: flex; align-items: flex-end; }
+.share-sheet { width: 100%; background: #f2f2f7; color: #111; border-radius: 16px 16px 0 0; padding: 0.6rem 0.9rem 1.2rem; text-align: left; }
+.grabber { width: 2.4rem; height: 4px; border-radius: 2px; background: #c7c7cc; margin: 0 auto 0.6rem; }
+.ss-title { display: block; font-size: 0.8rem; margin-bottom: 0.7rem; }
+.ss-apps { display: flex; gap: 0.6rem; margin-bottom: 0.8rem; }
+.ss-apps i { font-style: normal; font-size: 0.55rem; color: #fff; width: 3rem; height: 3rem; border-radius: 12px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 0.25rem; }
+.ss-actions { list-style: none; margin: 0; padding: 0; background: #fff; border-radius: 10px; font-size: 0.82rem; }
+.ss-actions li { padding: 0.6rem 0.8rem; border-bottom: 1px solid #e5e5ea; }
+.ss-actions li:last-child { border: 0; }
+.ss-actions li.hl { background: #fff4d6; font-weight: 600; }
+.sc-icon { display: inline-flex; width: 1.2rem; height: 1.2rem; border-radius: 5px; background: #ff9f0a; align-items: center; justify-content: center; font-size: 0.7rem; margin-right: 0.3rem; }
+.sc-bg { background: #e9e9ee; display: flex; flex-direction: column; gap: 0.6rem; }
+.sc-card { background: #fff; color: #111; border-radius: 12px; padding: 0.65rem 0.8rem; text-align: left; font-size: 0.8rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.sc-card small { display: block; color: #6b6b72; font-size: 0.68rem; }
+.sc-card b { display: block; color: #0a60c9; margin: 0.1rem 0; }
+.notif { background: #fff; border: 1px solid var(--rule); border-radius: 14px; padding: 0.6rem 0.8rem; box-shadow: 0 6px 16px rgba(0,0,0,0.12); text-align: left; font-size: 0.8rem; display: flex; flex-direction: column; }
+.notif span { color: var(--muted); font-size: 0.75rem; }
+.api-box { max-width: 46rem; margin: 2rem auto 0; }
+.api-box pre { background: #14202b; color: #d7e6f2; padding: 1rem 1.1rem; border-radius: 10px; font-size: 0.78rem; line-height: 1.6; overflow-x: auto; }
+.api-box pre code { background: none; color: inherit; }
+
+@media (max-width: 52rem) {
+  .draft-grid { grid-template-columns: 1fr; }
+  .facts-grid { grid-template-columns: 1fr; }
+  .apply-box dl { grid-template-columns: 1fr; }
+}
+.sample-bar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.sample-bar label { font-size: 0.8125rem; color: var(--muted); }
+.flag.inf { background: #e6d9f6; color: #4a2a7a; }
+.flag.apx { background: #d6efe0; color: #14633a; }
+.field.inferred input { border-color: #b79ad9; background: #f8f3fd; }
+.draft-form h3 { font-size: 0.95rem; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+.draft-form h3:first-child { margin-top: 0; padding-top: 0; border: 0; }
+.draft-form h3 small { font-weight: 400; color: var(--muted); margin-left: 0.4rem; }
+.job-edit { border: 1px solid var(--rule); border-radius: 10px; padding: 0.9rem 1rem 0.2rem; margin-bottom: 0.8rem; background: var(--paper); }
+.job-edit.off { opacity: 0.55; }
+.job-check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.7rem; cursor: pointer; }
+.job-check input { width: auto; margin: 0; }
+.job-check small { font-weight: 400; color: var(--muted); }
+.contact-row { display: grid; grid-template-columns: 9.5rem 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+.contact-row select, .contact-row input { font: inherit; font-size: 0.9rem; padding: 0.5rem 0.6rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); color: var(--ink); min-width: 0; }
+.add-link { font: 500 0.8125rem var(--ui); color: var(--accent); background: none; border: 0; padding: 0.2rem 0; cursor: pointer; }
+.warn-box { background: #fff6d6; border: 1px solid #e8d48a; color: #4d3f00; border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 0.8rem; margin-bottom: 0.8rem; line-height: 1.5; }
+.warn-box.info { background: #e3ecf7; border-color: #b9cfe8; color: #1d4a73; }
+.src-img { position: relative; }
+.src-img.t1 { background: linear-gradient(135deg, #b0126e, #3a2bb5); color: #fff; }
+.src-img.t2 { background: linear-gradient(135deg, #d6302a, #8e1010); color: #fff; }
+.src-img.t3 { background: linear-gradient(135deg, #cfd9e2, #aebccb); }
+.src-img.t4 { background: linear-gradient(135deg, #f1f3f5, #d8dde2); }
+.src-img.t5 { background: linear-gradient(135deg, #dbe7f5, #b6cde8); }
+@media (max-width: 52rem) { .contact-row { grid-template-columns: 1fr; } }
+
+</style></head><body>
+<div class="proto-bar">
+  <b>PROTOTYPE · dữ liệu mẫu, chưa phải bản thật</b>
+  <button class="proto-tab active" data-screen="home">1 · Trang chủ</button>
+  <button class="proto-tab" data-screen="jobs">2 · Việc làm</button>
+  <button class="proto-tab" data-screen="detail">3 · Chi tiết job</button>
+  <button class="proto-tab" data-screen="submit">4 · Gửi job (mobile)</button>
+  <button class="proto-tab" data-screen="draft">5 · Duyệt bản nháp</button>
+  <button class="proto-tab" data-screen="shortcut">6 · iOS Shortcut</button>
+</div>
+
+<!-- ============ 1. TRANG CHỦ ============ -->
+<section class="proto-screen active" id="screen-home">
+  <div class="proto-note"><b>Thay đổi so với hiện tại:</b> thêm thanh tab <b>Bài viết | Việc làm</b> dưới tiêu đề (số trên tab là số job đang tuyển). Mọi thứ khác của trang chủ giữ nguyên. Bấm tab "Việc làm" để xem màn tiếp theo.</div>
+  <main class="shelf" style="padding-top:1rem">
+    <header class="shelf-head">
+      <h1>Đọc gì hôm nay</h1>
+      <p>Kho bài kỹ thuật bạn tự chọn, dịch sẵn sang tiếng Việt để đọc khi rảnh.</p>
+      <nav class="site-tabs" aria-label="Khu vực">
+        <a href="#" class="active">Bài viết</a>
+        <a href="#" data-goto="jobs">Việc làm<span class="count">12</span></a>
+      </nav>
+      <div class="search-form"><input type="search" placeholder="Tìm bài viết theo từ khoá…"><button type="button" aria-label="Tìm"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button></div>
+      <nav class="topic-filter"><a href="#" class="topic-pill active">Tất cả</a><a href="#" class="topic-pill">AI</a><a href="#" class="topic-pill">System Design</a></nav>
+    </header>
+    <ol class="entries">
+      <li class="entry"><div>
+        <h2><a href="#">Spec-driven development Workflow: Stop Letting AI Write Code Before You Approve the Plan</a><button class="translate-one" type="button"><img class="translate-icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='4' fill='%234285f4'/><text x='12' y='17' font-size='13' text-anchor='middle' fill='white' font-family='Arial'>G</text></svg>" width="16" height="16" alt=""></button></h2>
+        <p class="meta"><span>Kumaran C.S</span><span>30/10/2026</span></p>
+        <p class="desc">The article introduces Specforge, a Claude Code plugin that enforces spec-driven development by requiring human approval of specifications before AI generates code…</p>
+        <p class="topics"><a class="topic-pill-sm" href="#">AI</a><a class="topic-pill-sm" href="#">Claude Ai</a><a class="topic-pill-sm" href="#">Claude Code</a></p>
+      </div></li>
+      <li class="entry"><div>
+        <h2><a href="#">In-Person Interviews Are Back. How to Prepare When AI Can’t Help You</a></h2>
+        <p class="meta"><span>Arvind Kumar</span><span>30/10/2026</span></p>
+        <p class="desc">Major tech companies are returning to in-person interviews to prevent AI-assisted cheating, while simultaneously introducing AI-allowed coding rounds…</p>
+        <p class="topics"><a class="topic-pill-sm" href="#">Engineering Leadership</a><a class="topic-pill-sm" href="#">Leadership</a></p>
+      </div></li>
+    </ol>
+  </main>
+</section>
+
+<!-- ============ 2. DANH SÁCH VIỆC LÀM ============ -->
+<section class="proto-screen" id="screen-jobs">
+  <div class="proto-note"><b>Trang <code>/viec-lam</code>.</b> Có tìm kiếm (tái dùng bộ tìm bỏ dấu + tô vàng như bài viết), lọc theo hình thức/cấp bậc/địa điểm, thẻ job hiện lương nổi bật. Có 3 loại thẻ để bạn xem cách hiển thị khi thông tin không đủ: <b>tin đầy đủ</b>, <b>tin khái quát</b> (thiếu lương/công ty), <b>đã hết hạn</b> (mờ đi, xếp cuối). Thử bấm các nút "Hình thức" bên dưới — lọc hoạt động thật.</div>
+  <main class="shelf" style="padding-top:1rem">
+    <header class="shelf-head">
+      <h1>Đọc gì hôm nay</h1>
+      <p>Tin tuyển dụng IT được chọn lọc, cập nhật mỗi ngày.</p>
+      <nav class="site-tabs"><a href="#" data-goto="home">Bài viết</a><a href="#" class="active">Việc làm<span class="count">12</span></a></nav>
+      <div class="search-form"><input type="search" placeholder="Tìm theo chức danh, công ty, kỹ năng…"><button type="button" aria-label="Tìm"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button></div>
+      <div class="filter-row" id="mode-filter"><span class="filter-label">Hình thức</span>
+        <a href="#" class="topic-pill active" data-mode="all">Tất cả</a><a href="#" class="topic-pill" data-mode="remote">Remote</a><a href="#" class="topic-pill" data-mode="hybrid">Hybrid</a><a href="#" class="topic-pill" data-mode="onsite">Onsite</a></div>
+      <div class="filter-row"><span class="filter-label">Lọc thêm</span>
+        <select class="select-pill"><option>Cấp bậc: tất cả</option><option>Intern/Fresher</option><option>Junior</option><option>Mid</option><option>Senior</option><option>Lead+</option></select>
+        <select class="select-pill"><option>Địa điểm: tất cả</option><option>TP. Hồ Chí Minh</option><option>Hà Nội</option><option>Đà Nẵng</option></select>
+        <select class="select-pill"><option>Lương: tất cả</option><option>Từ 20 triệu</option><option>Từ 40 triệu</option><option>Có ghi lương</option></select></div>
+      <p class="search-summary" id="job-count" style="margin-top:.9rem">4 việc làm</p>
+    </header>
+
+    <ol class="entries" id="job-list">
+      <li class="job-card" data-mode="hybrid">
+        <div class="job-top"><h2><a href="#" data-goto="detail">Senior Backend Engineer (Go)</a></h2><span class="badge-new">Mới</span></div>
+        <p class="job-company">Tiki · TP. Hồ Chí Minh</p>
+        <p class="job-facts"><span class="fact salary">40 – 60 triệu</span><span class="fact">Hybrid</span><span class="fact">Senior</span><span class="fact">Full-time</span></p>
+        <p class="desc">Xây dựng hệ thống xử lý đơn hàng quy mô lớn, làm việc cùng team Platform. Yêu cầu 4+ năm Go, quen Kubernetes và Kafka…</p>
+        <p class="topics"><a class="topic-pill-sm" href="#">Go</a><a class="topic-pill-sm" href="#">Kubernetes</a><a class="topic-pill-sm" href="#">PostgreSQL</a><a class="topic-pill-sm" href="#">Kafka</a></p>
+        <p class="meta"><span>Đăng 2 ngày trước</span><span>Hạn nộp 15/11/2026</span><span class="src">Nguồn: Facebook</span></p>
+      </li>
+      <li class="job-card" data-mode="remote">
+        <div class="job-top"><h2><a href="#">AI Engineer (LLM / RAG)</a></h2><span class="badge-new">Mới</span></div>
+        <p class="job-company">FPT Software · Hà Nội</p>
+        <p class="job-facts"><span class="fact salary">2.000 – 3.000 USD</span><span class="fact">Remote</span><span class="fact">Mid – Senior</span><span class="fact">Full-time</span></p>
+        <p class="desc">Thiết kế pipeline RAG và đánh giá chất lượng LLM cho khách hàng Nhật. Làm việc hoàn toàn từ xa, họp theo giờ Việt Nam.</p>
+        <p class="topics"><a class="topic-pill-sm" href="#">Python</a><a class="topic-pill-sm" href="#">LangChain</a><a class="topic-pill-sm" href="#">Vector DB</a></p>
+        <p class="meta"><span>Đăng 5 ngày trước</span><span>Hạn nộp 30/11/2026</span><span class="src">Nguồn: LinkedIn</span></p>
+      </li>
+      <li class="job-card" data-mode="onsite">
+        <div class="job-top"><h2><a href="#">Tuyển Fresher / Junior Java</a></h2><span class="badge-brief" title="Chỉ có thông tin khái quát">Tin khái quát</span></div>
+        <p class="job-company">Chưa rõ công ty · Đà Nẵng</p>
+        <p class="job-facts"><span class="fact">Lương thoả thuận</span><span class="fact">Onsite</span><span class="fact">Fresher / Junior</span></p>
+        <p class="desc">Công ty đang tuyển 5 bạn Fresher/Junior Java, ưu tiên biết Spring Boot. Liên hệ trực tiếp để biết thêm chi tiết.</p>
+        <p class="topics"><a class="topic-pill-sm" href="#">Java</a><a class="topic-pill-sm" href="#">Spring Boot</a></p>
+        <p class="meta"><span>Đăng hôm qua</span><span class="src">Nguồn: Email</span></p>
+      </li>
+      <li class="job-card expired" data-mode="onsite">
+        <div class="job-top"><h2><a href="#">DevOps Engineer</a></h2><span class="badge-expired">Đã hết hạn</span></div>
+        <p class="job-company">VNG · TP. Hồ Chí Minh</p>
+        <p class="job-facts"><span class="fact">Onsite</span><span class="fact">Mid</span><span class="fact">Full-time</span></p>
+        <p class="topics"><a class="topic-pill-sm" href="#">AWS</a><a class="topic-pill-sm" href="#">Terraform</a></p>
+        <p class="meta"><span>Đăng 3 tuần trước</span><span>Hết hạn 20/10/2026</span><span class="src">Nguồn: Facebook</span></p>
+      </li>
+    </ol>
+  </main>
+</section>
+
+<!-- ============ 3. CHI TIẾT JOB ============ -->
+<section class="proto-screen" id="screen-detail">
+  <div class="proto-note"><b>Trang <code>/viec-lam/&lt;slug&gt;</code>.</b> Theo yêu cầu của bạn: <b>hiển thị đầy đủ thông tin liên hệ</b> (email, SĐT/Zalo, người liên hệ, link ứng tuyển). Dùng nút bên dưới để xem 2 trường hợp: tin có JD đầy đủ và tin khái quát — trường nào thiếu thì ẩn đi thay vì hiện ô trống.
+    <div class="seg" style="margin-top:.6rem"><button class="seg-btn active" data-variant="full">Tin có JD đầy đủ</button><button class="seg-btn" data-variant="brief">Tin khái quát</button></div></div>
+
+  <main class="reader" style="padding-top:.5rem">
+    <nav class="reader-nav"><a href="#" data-goto="jobs">← Việc làm</a></nav>
+
+    <!-- đầy đủ -->
+    <div class="variant" data-variant="full">
+      <header class="reader-head" style="margin-top:1.5rem">
+        <h1>Senior Backend Engineer (Go)</h1>
+        <p class="job-company" style="font-size:1.05rem;margin-top:.5rem">Tiki · TP. Hồ Chí Minh</p>
+        <p class="meta"><span>Đăng 2 ngày trước</span><span>Hạn nộp 15/11/2026</span><span class="badge-new">Mới</span></p>
+        <div class="share-actions"><button type="button" class="share-action">Chia sẻ</button><button type="button" class="share-action">Sao chép link</button></div>
+      </header>
+      <div class="facts-grid">
+        <div><small>Mức lương</small><b class="salary-text">40 – 60 triệu VND</b></div>
+        <div><small>Hình thức</small><b>Hybrid (3 ngày/tuần tại văn phòng)</b></div>
+        <div><small>Cấp bậc</small><b>Senior</b></div>
+        <div><small>Loại hợp đồng</small><b>Full-time</b></div>
+        <div><small>Kỹ năng</small><span class="topics" style="margin:0"><a class="topic-pill-sm" href="#">Go</a><a class="topic-pill-sm" href="#">Kubernetes</a><a class="topic-pill-sm" href="#">PostgreSQL</a><a class="topic-pill-sm" href="#">Kafka</a></span></div>
+        <div><small>Hạn nộp hồ sơ</small><b>15/11/2026 · còn 14 ngày</b></div>
+      </div>
+      <article class="prose job-prose">
+        <h3>Mô tả công việc</h3>
+        <ul><li>Thiết kế và phát triển các service xử lý đơn hàng bằng Go, phục vụ hàng triệu request mỗi ngày.</li><li>Tối ưu hiệu năng, độ tin cậy của hệ thống phân tán; tham gia on-call theo lịch.</li><li>Phối hợp với Product, QA và DevOps để triển khai tính năng mới.</li></ul>
+        <h3>Yêu cầu</h3>
+        <ul><li>4+ năm kinh nghiệm backend, ít nhất 2 năm với Go.</li><li>Hiểu Kubernetes, Kafka, PostgreSQL; có kinh nghiệm thiết kế API.</li><li>Đọc hiểu tài liệu tiếng Anh tốt.</li></ul>
+        <h3>Quyền lợi</h3>
+        <ul><li>Thưởng tháng 13, review lương 2 lần/năm.</li><li>Bảo hiểm sức khoẻ cao cấp cho bản thân và người thân.</li><li>Ngân sách học tập 20 triệu/năm.</li></ul>
+      </article>
+      <section class="apply-box">
+        <h3>Cách ứng tuyển</h3>
+        <dl>
+          <dt>Email</dt><dd><a href="#">hr.backend@tiki.example</a></dd>
+          <dt>SĐT / Zalo</dt><dd>0900 000 000</dd>
+          <dt>Người liên hệ</dt><dd>Chị Lan — Talent Acquisition</dd>
+          <dt>Link ứng tuyển</dt><dd><a href="#">careers.tiki.example/senior-backend-go</a></dd>
+        </dl>
+        <p class="hint" style="margin-top:.6rem">Gợi ý: ghi “Ứng tuyển qua Đọc gì hôm nay” trong tiêu đề email.</p>
+      </section>
+      <p class="source-box">Nguồn: bài đăng trên Facebook group <b>IT Jobs Vietnam</b> · <a href="#">xem bài gốc</a><br>Được đăng lại ngày 29/10/2026. Thông tin do nhà tuyển dụng cung cấp, vui lòng xác nhận lại trực tiếp. <a href="#">Báo cáo tin này</a></p>
+    </div>
+
+    <!-- khái quát -->
+    <div class="variant" data-variant="brief" hidden>
+      <header class="reader-head" style="margin-top:1.5rem">
+        <h1>Tuyển Fresher / Junior Java</h1>
+        <p class="job-company" style="font-size:1.05rem;margin-top:.5rem">Đà Nẵng</p>
+        <p class="meta"><span>Đăng hôm qua</span><span class="badge-brief">Tin khái quát</span></p>
+        <div class="share-actions"><button type="button" class="share-action">Chia sẻ</button><button type="button" class="share-action">Sao chép link</button></div>
+      </header>
+      <div class="facts-grid">
+        <div><small>Mức lương</small><b>Thoả thuận</b></div>
+        <div><small>Hình thức</small><b>Onsite</b></div>
+        <div><small>Cấp bậc</small><b>Fresher / Junior</b></div>
+        <div><small>Kỹ năng</small><span class="topics" style="margin:0"><a class="topic-pill-sm" href="#">Java</a><a class="topic-pill-sm" href="#">Spring Boot</a></span></div>
+      </div>
+      <div class="brief-banner">Tin này chỉ có thông tin khái quát (thiếu JD, tên công ty, hạn nộp). Hãy liên hệ trực tiếp để biết thêm chi tiết.</div>
+      <article class="prose job-prose">
+        <h3>Nội dung tin</h3>
+        <p>Công ty đang tuyển 5 bạn Fresher/Junior Java, ưu tiên biết Spring Boot. Làm việc tại Đà Nẵng. Liên hệ trực tiếp để biết thêm chi tiết.</p>
+      </article>
+      <section class="apply-box"><h3>Cách ứng tuyển</h3><dl><dt>Email</dt><dd><a href="#">tuyendung@congty.example</a></dd></dl></section>
+      <p class="source-box">Nguồn: email được chuyển tiếp · Được đăng lại ngày 31/10/2026. <a href="#">Báo cáo tin này</a></p>
+    </div>
+  </main>
+</section>
+
+<!-- ============ 4. GỬI JOB (MOBILE) ============ -->
+<section class="proto-screen" id="screen-submit">
+  <div class="proto-note"><b>Form gửi job (chỉ admin, <code>/admin/jobs/new</code>, đăng nhập Basic Auth).</b> Mọi ô đều tuỳ chọn — chỉ cần có text <i>hoặc</i> ảnh. Thử trong khung điện thoại: bấm <b>Thêm ảnh</b> vài lần, rồi <b>Phân tích &amp; tạo bản nháp</b> để xem trạng thái đang xử lý, sau đó tự chuyển sang màn 5.</div>
+  <div class="split">
+    <div class="device" id="phone-submit">
+      <div class="device-status"><span>9:41</span><span>●●● 5G</span></div>
+      <div class="m-screen">
+        <a href="#" class="back-link">← Về trang chủ</a>
+        <h1 class="m-title">Gửi job</h1>
+        <p class="hint" style="margin:0 0 1rem">Gửi JD đầy đủ, vài dòng khái quát hoặc chỉ ảnh chụp đều được.</p>
+
+        <div class="field"><label>Nguồn</label>
+          <div class="chips" id="source-chips"><button class="chip active">Tự nhận diện</button><button class="chip">Facebook</button><button class="chip">LinkedIn</button><button class="chip">Email</button><button class="chip">Zalo</button><button class="chip">Khác</button></div></div>
+        <div class="field"><label>Link bài gốc (nếu có)</label><input type="url" placeholder="https://facebook.com/groups/…"></div>
+        <div class="field"><label>Nội dung (dán JD hoặc mô tả ngắn)</label><textarea rows="5" placeholder="VD: Tiki tuyển Senior Go, 40-60tr, hybrid HCM. Gửi CV về hr.backend@tiki.example…"></textarea></div>
+        <div class="field"><label>Ảnh chụp (tối đa 8, theo thứ tự cuộn)</label>
+          <div class="thumbs" id="thumbs"><button class="add-tile" id="add-image" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>Thêm ảnh</span></button></div>
+          <p class="hint" id="img-hint" style="margin:.4rem 0 0">Nhiều ảnh = các phần của <b>cùng một bài đăng</b> (đoạn trùng được gộp). Bài khác nhau: gửi riêng.</p></div>
+        <div class="field"><label>Dặn Claude (tuỳ chọn)</label><input placeholder="VD: chỉ lấy job đầu tiên · bỏ qua phần quảng cáo"></div>
+        <button class="btn-primary" id="analyze" type="button">Phân tích &amp; tạo bản nháp</button>
+        <p class="hint" style="text-align:center;margin-top:.6rem">Claude sẽ điền sẵn, bạn duyệt rồi mới đăng.</p>
+      </div>
+      <div class="overlay" id="overlay" hidden><div class="overlay-box"><span class="spinner" style="margin:0"></span><b id="ov-title">Claude đang đọc nội dung…</b><p class="hint" id="ov-sub">Bạn có thể rời trang, bản nháp sẽ có trong danh sách.</p><div class="progress-inline"><div></div></div></div></div>
+    </div>
+    <ul class="decisions">
+      <li><b>Chỉ cần text hoặc ảnh:</b> không bắt buộc điền đủ ô nào. “Tự nhận diện” để Claude đoán nguồn (Facebook/LinkedIn/…) từ ảnh.</li>
+      <li><b>Nhiều ảnh = một bài:</b> khi chụp cuộn nhiều màn hình, đoạn trùng giữa các ảnh được gộp. Hai bài khác nhau thì gửi hai lần.</li>
+      <li><b>Một bài có thể ra nhiều job</b> (vd. 4 vị trí trong một bài, hoặc danh sách LinkedIn); bạn chọn job nào đăng ở bước duyệt.</li>
+      <li><b>“Dặn Claude”:</b> chỉ dẫn ngắn khi ảnh có nhiều thứ lẫn lộn.</li>
+      <li><b>Ảnh:</b> chụp hoặc chọn từ thư viện; trình duyệt tự thu nhỏ ≤ 1600px để nhanh và đỡ tốn token.</li>
+      <li><b>Chạy nền:</b> giống nút dịch, có trạng thái “đang xử lý”; xong là có bản nháp để duyệt.</li>
+      <li><b>Hàng đợi bản nháp</b> ở <code>/admin/jobs</code> để bạn duyệt nhiều tin một lượt.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 5. DUYỆT BẢN NHÁP ============ -->
+<section class="proto-screen" id="screen-draft">
+  <div class="proto-note"><b>Duyệt bản nháp (<code>/admin/jobs/&lt;id&gt;</code>) — làm lại theo 6 input thật của bạn.</b> Chọn <b>Input mẫu</b> ở ngay dưới để xem form Claude điền sẵn cho từng trường hợp. Nhãn: <span class="flag miss">thiếu</span> không tìm thấy · <span class="flag img">từ ảnh</span> đọc từ ảnh, nên kiểm tra · <span class="flag inf">suy luận</span> Claude đoán · <span class="flag apx">xấp xỉ</span> con số gần đúng. Chỉ khi bạn bấm <b>Đăng</b> tin mới lên site.</div>
+  <main class="shelf" style="max-width:70rem;padding-top:.5rem">
+    <header class="shelf-head">
+      <a href="#" class="back-link">← Danh sách bản nháp</a>
+      <h1 style="font-size:1.6rem">Duyệt bản nháp <span class="badge-brief">Bản nháp</span></h1>
+      <div class="sample-bar"><label for="sample-select">Input mẫu</label>
+        <select id="sample-select" class="select-pill">
+          <option value="0">1 · FB chữ trên nền màu (viết tắt, thiếu công ty)</option>
+          <option value="1" selected>2 · FB: 1 bài có 4 vị trí (VTVprime)</option>
+          <option value="2">3+4 · FB: 2 ảnh cuộn của cùng một bài</option>
+          <option value="3">5 · FB: Laravel, có quy định tiêu đề email</option>
+          <option value="4">6 · LinkedIn: danh sách 4 job</option>
+        </select></div>
+      <p class="hint" id="sample-desc" style="margin:.5rem 0 0"></p>
+    </header>
+    <div class="draft-grid">
+      <form class="draft-form" id="draft-main" onsubmit="return false"></form>
+      <aside class="draft-side" id="draft-side"></aside>
+    </div>
+  </main>
+</section>
+
+<!-- ============ 6. SHORTCUT ============ -->
+<section class="proto-screen" id="screen-shortcut">
+  <div class="proto-note"><b>Gửi nhanh từ iPhone bằng iOS Shortcut.</b> Từ Facebook, LinkedIn, Mail hoặc Ảnh: bấm <b>Chia sẻ</b> → chọn “Gửi job” → Shortcut gửi text/link/ảnh lên server và mở bản nháp để bạn duyệt. Lưu ý: tôi không có iPhone để test Shortcut, nên sẽ viết hướng dẫn từng bước + API; bạn tự tạo Shortcut 1 lần (khoảng 5 phút).</div>
+  <div class="flow">
+    <div class="step"><span class="step-n">1</span><h3>Bấm Chia sẻ</h3>
+      <div class="device small"><div class="m-screen sheet-bg">
+        <div class="share-sheet"><div class="grabber"></div><b class="ss-title">Bài đăng tuyển dụng… (Facebook)</b>
+          <div class="ss-apps"><i style="background:#34c759">Tin nhắn</i><i style="background:#0a84ff">Mail</i><i style="background:#8e8e93">Ghi chú</i><i style="background:#ff9f0a">AirDrop</i></div>
+          <ul class="ss-actions"><li>Sao chép</li><li class="hl"><span class="sc-icon">⚡</span> Gửi job</li><li>Thêm vào Danh sách đọc</li></ul></div></div></div></div>
+    <div class="step"><span class="step-n">2</span><h3>Shortcut “Gửi job” chạy</h3>
+      <div class="device small"><div class="m-screen sc-bg">
+        <div class="sc-card"><small>Nhận</small><b>Văn bản, URL, Hình ảnh</b><small>từ Share Sheet</small></div>
+        <div class="sc-card"><small>Nhận nội dung từ URL</small><b>POST · /api/admin/jobs</b><small>Form: text, source_url, images · Header X-Import-Token</small></div>
+        <div class="sc-card"><small>Lấy giá trị từ kết quả</small><b>draft_url</b></div>
+        <div class="sc-card"><small>Mở URL</small><b>draft_url</b></div></div></div></div>
+    <div class="step"><span class="step-n">3</span><h3>Duyệt bản nháp</h3>
+      <div class="device small"><div class="m-screen">
+        <div class="notif"><b>Đã nhận job</b><span>Claude đang phân tích… mở bản nháp để duyệt</span></div>
+        <h1 class="m-title" style="font-size:1.1rem;margin-top:1rem">Duyệt tin tuyển dụng</h1><div class="field"><label>Chức danh *</label><input value="Senior Backend Engineer (Go)"></div><div class="field missing"><label>Hạn nộp <span class="flag miss">thiếu</span></label><input></div><button class="btn-primary" type="button">Đăng lên site</button></div></div></div>
+  </div>
+  <div class="api-box"><h3>API mà Shortcut gọi</h3>
+<pre><code>POST /api/admin/jobs            (multipart/form-data)
+Header:  X-Import-Token: &lt;IMPORT_TOKEN của bạn&gt;
+Fields:  text        (tuỳ chọn) nội dung/JD
+         source_url  (tuỳ chọn) link bài gốc
+         source      (tuỳ chọn) facebook | linkedin | email | zalo | other
+         images      (tuỳ chọn, tối đa 5) file ảnh, ≤ 8 MB mỗi ảnh
+Trả về:  { "ok": true, "id": 42, "draft_url": "https://…/admin/jobs/42" }</code></pre>
+    <ul class="decisions"><li>Token nằm trong Shortcut trên máy của bạn — dùng đúng <code>IMPORT_TOKEN</code> chủ site như extension.</li><li>Tin gửi bằng Shortcut luôn vào <b>bản nháp</b>, không tự đăng.</li><li>Từ app Facebook/LinkedIn thường chỉ chia sẻ được <b>link</b>, không phải nội dung bài; khi đó bạn chụp màn hình rồi chia sẻ ảnh (hoặc dán text) — Shortcut nhận cả hai.</li></ul></div>
+</section>
+
+<script>const show = (name) => {
+  document.querySelectorAll('.proto-screen').forEach((s) => s.classList.toggle('active', s.id === `screen-${name}`));
+  document.querySelectorAll('.proto-tab').forEach((t) => t.classList.toggle('active', t.dataset.screen === name));
+  window.scrollTo(0, 0);
+};
+document.querySelectorAll('.proto-tab').forEach((t) => t.addEventListener('click', () => show(t.dataset.screen)));
+document.querySelectorAll('[data-goto]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); show(a.dataset.goto); }));
+document.querySelectorAll('a[href="#"]').forEach((a) => a.addEventListener('click', (e) => e.preventDefault()));
+
+// Lọc theo hình thức (hoạt động thật trên 4 thẻ mẫu)
+document.querySelectorAll('#mode-filter [data-mode]').forEach((pill) => pill.addEventListener('click', () => {
+  document.querySelectorAll('#mode-filter .topic-pill').forEach((p) => p.classList.toggle('active', p === pill));
+  const mode = pill.dataset.mode;
+  let n = 0;
+  document.querySelectorAll('#job-list .job-card').forEach((c) => {
+    const ok = mode === 'all' || c.dataset.mode === mode;
+    c.hidden = !ok;
+    if (ok && !c.classList.contains('expired')) n++;
+  });
+  document.getElementById('job-count').textContent = `${n} việc làm đang tuyển`;
+}));
+
+// Chi tiết: 2 biến thể
+document.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+  document.querySelectorAll('.variant').forEach((v) => { v.hidden = v.dataset.variant !== b.dataset.variant; });
+}));
+
+// Form gửi job
+document.querySelectorAll('#source-chips .chip').forEach((c) => c.addEventListener('click', () =>
+  document.querySelectorAll('#source-chips .chip').forEach((x) => x.classList.toggle('active', x === c))));
+let imgs = 0;
+document.getElementById('add-image').addEventListener('click', () => {
+  if (imgs >= 8) return;
+  imgs++;
+  const t = document.createElement('div');
+  t.className = 'thumb';
+  t.textContent = `Ảnh ${imgs}`;
+  document.getElementById('thumbs').insertBefore(t, document.getElementById('add-image'));
+  document.getElementById('img-hint').textContent = `${imgs}/8 ảnh · cùng một bài đăng · tự thu nhỏ trước khi gửi`;
+});
+document.getElementById('analyze').addEventListener('click', () => {
+  const ov = document.getElementById('overlay');
+  document.getElementById('ov-title').textContent = imgs ? `Claude đang đọc ${imgs} ảnh và nội dung…` : 'Claude đang đọc nội dung…';
+  ov.hidden = false;
+  setTimeout(() => { ov.hidden = true; show('draft'); }, 2600);
+});
+const SAMPLES = [
+  { // 1
+    desc: 'Chữ nằm trong ảnh nền màu, viết tắt nhiều. Không có công ty, không email/SĐT — chỉ "Lh mình" (liên hệ người đăng). Lương ~50M xấp xỉ.',
+    images: [['Ảnh 1/1 · chữ trên nền màu', 't1']],
+    raw: 'HN- Dự án AI/tích hợp AI product lớn tìm 3 BACKEND DEV, 5+YoE BE bất kỳ, có kn dự án lớn, thiết kế HA, đại học IT, ~50M. Lh mình',
+    notes: [['info', 'Claude đã diễn giải từ viết tắt: HN = Hà Nội, YoE = năm kinh nghiệm, BE = Backend, kn = kinh nghiệm, HA = High Availability, Lh = liên hệ.']],
+    source: { type: 'Facebook group', group: 'Tuyển Dụng Python (Django) Việt Nam', poster: 'Minh Nguyen', link: '', linkFlag: 'miss', posted: '1 giờ trước (≈ 01/11/2026)' },
+    shared: [['Công ty / dự án tuyển', 'Dự án AI product lớn (chưa rõ công ty)', 'miss'], ['Địa điểm', 'Hà Nội', 'img'], ['Hình thức', '', 'miss'], ['Hạn nộp hồ sơ', '', 'miss']],
+    contacts: [['Liên hệ người đăng', 'Minh Nguyen (Facebook)', 'Nhắn trực tiếp / bình luận dưới bài']],
+    apply: '',
+    jobs: [{ on: 1, title: 'Backend Developer', head: '3', exp: '5+ năm, ngôn ngữ bất kỳ', salary: '~50 triệu', salaryFlag: 'apx', skills: ['High Availability', 'Dự án quy mô lớn', 'Tốt nghiệp ĐH IT', 'AI product'], expFlag: 'img' }],
+  },
+  { // 2
+    desc: 'Một bài nguồn có 4 vị trí dùng chung công ty, địa chỉ, liên hệ, kinh nghiệm 1–3 năm. Banner trùng nội dung với text. Có Zalo + email.',
+    images: [['Ảnh 1/1 · bài + banner VTVprime', 't2']],
+    raw: 'MỞ RỘNG DỰ ÁN VTVPRIME, Team mình cần tuyển dụng thêm nhiều đồng code từ 1-3 năm kinh nghiệm: SRE Engineer, Backend Engineer, UIUX Designer, Fullstack Engineer. Chi tiết vui lòng liên hệ zalo 0792040529 (Mn vui lòng không trao đổi trên messenger để tránh bị miss tin nhắn ạ). Địa điểm làm việc: Tòa nhà VTV8, 258 Bạch Đằng, Hải Châu, Đà Nẵng. Apply: khaiha@vtvcab.vn',
+    notes: [['info', 'Phát hiện 4 vị trí trong 1 bài → tạo 4 job dùng chung thông tin bên dưới. Bỏ tích vị trí nào bạn không muốn đăng.']],
+    source: { type: 'Facebook group', group: 'Việc làm CNTT Đà Nẵng', poster: 'Khải Hạ', link: '', linkFlag: 'miss', posted: '6 ngày trước (≈ 26/10/2026)' },
+    shared: [['Công ty / dự án tuyển', 'VTVcab – Trung tâm kinh doanh OTT (dự án VTVprime)', ''], ['Địa điểm', 'Đà Nẵng', ''], ['Địa chỉ', 'Tòa nhà VTV8, 258 Bạch Đằng, Hải Châu', ''], ['Hình thức', 'Onsite', 'inf'], ['Kinh nghiệm chung', '1 – 3 năm', 'img'], ['Hạn nộp hồ sơ', '', 'miss']],
+    contacts: [['SĐT / Zalo', '0792040529', 'Chỉ nhắn Zalo, không nhắn Messenger'], ['Email', 'khaiha@vtvcab.vn', 'Gửi CV']],
+    apply: '',
+    jobs: [
+      { on: 1, title: 'SRE Engineer', head: '', exp: '1 – 3 năm', salary: '', salaryFlag: 'miss', skills: [] },
+      { on: 1, title: 'Backend Engineer', head: '', exp: '1 – 3 năm', salary: '', salaryFlag: 'miss', skills: [] },
+      { on: 1, title: 'UI/UX Designer', head: '', exp: '1 – 3 năm', salary: '', salaryFlag: 'miss', skills: [] },
+      { on: 1, title: 'Fullstack Engineer', head: '', exp: '1 – 3 năm', salary: '', salaryFlag: 'miss', skills: [] },
+    ],
+  },
+  { // 3+4
+    desc: 'Hai ảnh là hai lần cuộn của cùng một bài; đoạn giữa trùng nhau. Trang đăng (My Virtual Mate) khác công ty tuyển thật (Innovex AI, chỉ thấy trong banner).',
+    images: [['Ảnh 1/2 · phần đầu bài', 't3'], ['Ảnh 2/2 · phần cuối + banner', 't4']],
+    raw: 'WE\'RE HIRING: FULL-STACK DEVELOPER … Build and maintain web applications using React, Next.js and TypeScript. Develop backend services and APIs using Node.js and Supabase … 2–4 years of web development experience … Work Arrangement: Remote. Employment Type: Full-Time. Working Hours: Aligned with Australian business hours. Experience: 2–4 years. Candidates with 1–2 years of experience and a strong portfolio are also welcome. Apply Now: avleensb@innovexai.ae',
+    notes: [['', 'Ảnh 1 và ảnh 2 trùng 6 dòng ("Employment Type… Working Hours…") — đã gộp thành một bản, không nhân đôi nội dung.'], ['info', 'Công ty tuyển lấy từ banner ("Innovex AI"); "My Virtual Mate" là trang đăng hộ nên để ở mục Nguồn.']],
+    source: { type: 'Facebook (trang)', group: '', poster: 'My Virtual Mate', link: '', linkFlag: 'miss', posted: '2 ngày trước (≈ 30/10/2026)' },
+    shared: [['Công ty / dự án tuyển', 'Innovex AI', 'img'], ['Địa điểm', '', 'miss'], ['Hình thức', 'Remote', ''], ['Giờ làm việc / múi giờ', 'Theo giờ hành chính của Úc', 'img'], ['Kinh nghiệm chung', '2 – 4 năm (1–2 năm + portfolio tốt cũng được xét)', ''], ['Hạn nộp hồ sơ', '', 'miss']],
+    contacts: [['Email', 'avleensb@innovexai.ae', 'Gửi CV (ghi “Apply Now”)']],
+    apply: '',
+    jobs: [{ on: 1, title: 'Full-Stack Developer', head: '', exp: '2 – 4 năm', salary: '', salaryFlag: 'miss', skills: ['React', 'TypeScript', 'Next.js', 'Node.js', 'Supabase', 'PostgreSQL', 'SQL', 'Git', 'Docker', 'AI coding tools'] }],
+  },
+  { // 5
+    desc: 'Có quy định tiêu đề email khi ứng tuyển. Không công ty (chỉ suy ra từ tên miền email), không địa điểm, không lương. Yêu cầu/quyền lợi viết đầy đủ.',
+    images: [['Ảnh 1/1 · bài Laravel', 't5']],
+    raw: 'We\'re Hiring | Junior / Mid-Level Laravel Developer. Requirements: Minimum 1 year of professional experience with PHP and Laravel. Good understanding of MySQL … RESTful APIs … Git … What We Offer: Hands-on experience working on real-world client projects … Send your CV to info@fasslasoftware.com. Email Subject: Laravel Developer – Junior/Mid – Your Name',
+    notes: [['info', 'Công ty được đoán từ tên miền email (fasslasoftware.com) — kiểm tra lại trước khi đăng.']],
+    source: { type: 'Facebook group', group: 'Full Stack Developers Community', poster: 'talent academy', link: '', linkFlag: 'miss', posted: '5 ngày trước (≈ 27/10/2026)' },
+    shared: [['Công ty / dự án tuyển', 'Fassla Software', 'inf'], ['Địa điểm', '', 'miss'], ['Hình thức', '', 'miss'], ['Hạn nộp hồ sơ', '', 'miss']],
+    contacts: [['Email', 'info@fasslasoftware.com', 'Gửi CV']],
+    apply: 'Tiêu đề email: Laravel Developer – Junior/Mid – Họ tên của bạn',
+    jobs: [{ on: 1, title: 'Junior / Mid-Level Laravel Developer', head: '', exp: 'Từ 1 năm', salary: '', salaryFlag: 'miss', skills: ['PHP', 'Laravel', 'MySQL', 'REST API', 'Git', 'HTML/CSS/JS (Full Stack)'] }],
+  },
+  { // 6
+    desc: 'Ảnh chụp trang tìm việc LinkedIn: có 4 job trong danh sách bên trái, chỉ job đang mở (bên phải) có chi tiết. Link job suy ra từ currentJobId trên thanh địa chỉ.',
+    images: [['Ảnh 1/1 · trang LinkedIn Jobs', 't3']],
+    raw: 'Intermediate Backend Engineer (PHP) - Remote, Vietnam · Employment Hero · Vietnam (Remote) · 6 days ago · Over 100 applicants · Remote · Full-time · Easy Apply. Danh sách: Senior Software Engineer (Keyloop, Vietnam Hybrid) · Assistant Manager, Full Stack Software Engineer (Manulife, Binh Thuan Hybrid) · Full-Stack Software Engineer (HiTradies, Hanoi Hybrid)',
+    notes: [['info', 'Phát hiện 4 job. Chỉ job đầu có đủ thông tin (đang mở). 3 job còn lại chỉ có tên/công ty/địa điểm nên mặc định chưa tích — nên mở từng job trên LinkedIn rồi gửi lại ảnh hoặc link của nó.'], ['', 'Ảnh có thông tin cá nhân của bạn (avatar, “Viewed”). Ảnh gốc chỉ admin thấy, không hiển thị công khai.']],
+    source: { type: 'LinkedIn', group: '', poster: 'Employment Hero', link: 'https://www.linkedin.com/jobs/view/4483380500', linkFlag: 'inf', posted: '6 ngày trước (≈ 26/10/2026)' },
+    shared: [['Công ty / dự án tuyển', 'Employment Hero', 'img'], ['Địa điểm', 'Việt Nam', 'img'], ['Hình thức', 'Remote', 'img'], ['Hạn nộp hồ sơ', '', 'miss']],
+    contacts: [['LinkedIn Easy Apply', 'https://www.linkedin.com/jobs/view/4483380500', 'Ứng tuyển trên LinkedIn']],
+    apply: '',
+    jobs: [
+      { on: 1, title: 'Intermediate Backend Engineer (PHP) – Remote, Vietnam', head: '', exp: '', salary: '', salaryFlag: 'miss', skills: ['PHP'], expFlag: 'miss', note: 'Full-time · >100 ứng viên' },
+      { on: 0, title: 'Senior Software Engineer', head: '', exp: '', salary: '', salaryFlag: 'miss', skills: [], expFlag: 'miss', note: 'Keyloop · Việt Nam (Hybrid) · chỉ có thông tin tối thiểu' },
+      { on: 0, title: 'Assistant Manager, Full Stack Software Engineer', head: '', exp: '', salary: '', salaryFlag: 'miss', skills: [], expFlag: 'miss', note: 'Manulife · Bình Thuận (Hybrid) · chỉ có thông tin tối thiểu' },
+      { on: 0, title: 'Full-Stack Software Engineer', head: '', exp: '', salary: '', salaryFlag: 'miss', skills: [], expFlag: 'miss', note: 'HiTradies · Hà Nội (Hybrid) · chỉ có thông tin tối thiểu' },
+    ],
+  },
+];
+const FLAG = { miss: ['miss', 'thiếu'], img: ['img', 'từ ảnh'], inf: ['inf', 'suy luận'], apx: ['apx', 'xấp xỉ'] };
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fld = (label, value, flag = '', extra = '') => {
+  const cls = flag === 'miss' ? ' missing' : flag === 'img' ? ' warn' : flag === 'inf' ? ' inferred' : '';
+  const tag = flag && FLAG[flag] ? `<span class="flag ${FLAG[flag][0]}">${FLAG[flag][1]}</span>` : '';
+  return `<div class="field${cls}"><label>${label}${tag}</label><input value="${esc(value)}">${extra}</div>`;
+};
+const CONTACT_TYPES = ['Email', 'SĐT / Zalo', 'Link ứng tuyển', 'LinkedIn Easy Apply', 'Liên hệ người đăng'];
+
+const renderDraft = (i) => {
+  const s = SAMPLES[i];
+  document.getElementById('sample-desc').textContent = s.desc;
+  const src = s.source;
+  const notes = s.notes.map(([k, t]) => `<div class="warn-box ${k}">${t}</div>`).join('');
+  const shared = s.shared.map(([l, v, f]) => fld(l, v, f)).join('');
+  const contacts = s.contacts.map(([t, v, n]) => `<div class="contact-row"><select>${CONTACT_TYPES.map((x) => `<option${x === t || (t === 'Liên hệ người đăng' && x === t) ? ' selected' : ''}>${x}</option>`).join('')}</select><input value="${esc(v)}"><input value="${esc(n)}" placeholder="Ghi chú"></div>`).join('');
+  const jobs = s.jobs.map((j, k) => `
+    <div class="job-edit${j.on ? '' : ' off'}" data-job="${k}">
+      <label class="job-check"><input type="checkbox"${j.on ? ' checked' : ''}> Đăng vị trí này ${j.note ? `<small>· ${esc(j.note)}</small>` : ''}</label>
+      <div class="two">${fld('Chức danh *', j.title)}${fld('Số lượng cần tuyển', j.head)}</div>
+      <div class="two">${fld('Kinh nghiệm', j.exp, j.exp ? (j.expFlag || '') : 'miss')}${fld('Lương', j.salary, j.salaryFlag || '')}</div>
+      <div class="field"><label>Kỹ năng / yêu cầu chính</label><div class="chips">${j.skills.map((x) => `<span class="chip active">${esc(x)} ×</span>`).join('')}<span class="chip">+ thêm</span></div></div>
+    </div>`).join('');
+  document.getElementById('draft-main').innerHTML = `
+    ${notes}
+    <h3>1 · Bài nguồn <small>(chỉ hiển thị “Nguồn: …” công khai)</small></h3>
+    <div class="two"><div class="field"><label>Loại nguồn</label><select><option>${esc(src.type)}</option><option>LinkedIn</option><option>Email</option><option>Zalo</option><option>Khác</option></select></div>${fld('Nhóm / trang', src.group)}</div>
+    <div class="two">${fld('Người / trang đăng', src.poster)}${fld('Đăng lúc (ước tính)', src.posted, 'apx')}</div>
+    ${fld('Link bài gốc', src.link, src.linkFlag)}
+    <h3>2 · Thông tin chung <small>(dùng cho mọi vị trí bên dưới)</small></h3>
+    <div class="two">${shared}</div>
+    <h3>3 · Cách liên hệ / ứng tuyển <small>(hiển thị công khai)</small></h3>
+    ${contacts}<button type="button" class="add-link">+ Thêm cách liên hệ</button>
+    ${fld('Hướng dẫn ứng tuyển (nếu có)', s.apply, s.apply ? 'img' : '')}
+    <h3>4 · Vị trí tuyển <small>(${s.jobs.length} vị trí)</small></h3>
+    ${jobs}<button type="button" class="add-link">+ Thêm vị trí</button>
+    <div class="actions" style="margin-top:1rem"><button class="btn-primary" type="button" id="publish">Đăng 0 vị trí</button><button class="btn-ghost" type="button">Lưu nháp</button><button class="btn-ghost" type="button" data-goto="detail">Xem trước</button><button class="btn-ghost danger" type="button">Bỏ</button></div>
+    <p class="hint" id="publish-msg"></p>`;
+  document.getElementById('draft-side').innerHTML = `
+    <h3>Nguồn gốc (chỉ admin thấy)</h3>
+    ${s.images.map(([cap, t]) => `<div class="src-img ${t}"><span>${cap}</span></div>`).join('')}
+    <details open><summary>Nội dung Claude đọc được</summary><p class="raw">${esc(s.raw)}</p></details>
+    <p class="hint">Ảnh gốc không hiển thị công khai (có thể chứa thông tin cá nhân). Bạn luôn đối chiếu được với nội dung gốc ở đây.</p>`;
+  const sync = () => {
+    const n = document.querySelectorAll('#draft-main .job-edit input[type=checkbox]:checked').length;
+    document.getElementById('publish').textContent = `Đăng ${n} vị trí đã chọn`;
+    document.querySelectorAll('#draft-main .job-edit').forEach((c) => c.classList.toggle('off', !c.querySelector('input[type=checkbox]').checked));
+  };
+  document.querySelectorAll('#draft-main .job-edit input[type=checkbox]').forEach((c) => c.addEventListener('change', sync));
+  sync();
+  document.getElementById('publish').addEventListener('click', () => {
+    document.getElementById('publish-msg').textContent = 'Đã đăng (mô phỏng) — các vị trí đã chọn xuất hiện ở /viec-lam.';
+  });
+  document.querySelectorAll('#draft-main [data-goto]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); show(a.dataset.goto); }));
+};
+document.getElementById('sample-select').addEventListener('change', (e) => renderDraft(Number(e.target.value)));
+renderDraft(1);
+
+</script></body></html>

@@ -90,6 +90,41 @@ CREATE TABLE IF NOT EXISTS api_keys (
     created_at   TEXT DEFAULT CURRENT_TIMESTAMP,
     last_used_at TEXT
 );
+
+-- Tin tuyển dụng (/viec-lam). Admin chỉ dán text / tải file; Claude trích xuất thành các
+-- cột dưới đây (jobs.py). Danh sách (skills, description, requirements, benefits) lưu JSON.
+CREATE TABLE IF NOT EXISTS jobs (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug          TEXT UNIQUE NOT NULL,       -- định danh trong URL /viec-lam/<slug>, cố định từ lúc tạo
+    title         TEXT NOT NULL,
+    company       TEXT DEFAULT '',
+    location      TEXT DEFAULT '',
+    mode          TEXT DEFAULT '',            -- remote | hybrid | onsite | ''
+    level         TEXT DEFAULT '',
+    job_type      TEXT DEFAULT '',            -- Full-time | Part-time | Contract | Intern | ''
+    salary_min    REAL,
+    salary_max    REAL,
+    salary_unit   TEXT DEFAULT 'triệu VND',   -- 'triệu VND' | 'USD'
+    salary_per    TEXT DEFAULT 'tháng',       -- tháng | năm | giờ
+    salary_nego   INTEGER DEFAULT 0,          -- 1 = lương thoả thuận
+    headcount     INTEGER,
+    deadline      TEXT DEFAULT '',            -- YYYY-MM-DD, '' = không ghi
+    skills        TEXT DEFAULT '[]',          -- JSON list[str]
+    description   TEXT DEFAULT '[]',          -- JSON list[str]
+    requirements  TEXT DEFAULT '[]',
+    benefits      TEXT DEFAULT '[]',
+    contact_email  TEXT DEFAULT '',
+    contact_phone  TEXT DEFAULT '',
+    contact_person TEXT DEFAULT '',
+    contact_link   TEXT DEFAULT '',
+    status        TEXT DEFAULT 'draft',       -- draft | published
+    source_text   TEXT DEFAULT '',            -- nội dung gốc admin đưa vào (để đối chiếu lúc duyệt)
+    source_file   TEXT DEFAULT '',            -- tên file đã tải lên (chỉ để hiển thị, không lưu file)
+    ai_meta       TEXT DEFAULT '{}',          -- JSON {"inferred": [field], "notes": [str]}
+    created_at    TEXT DEFAULT CURRENT_TIMESTAMP,
+    published_at  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status, published_at);
 """
 
 

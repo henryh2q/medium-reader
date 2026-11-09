@@ -1,0 +1,70 @@
+{# Khung chi tiết job. Biến: j (bắt buộc); admin=true thêm nút quản trị; preview=true là bản xem trước ở form admin. #}
+{% from "_job_macros.html" import avatar %}
+{% macro apply_btn(j, preview) -%}
+{% if j.expired -%}<span class="jb-apply off" aria-disabled="true">Đã hết hạn</span>
+{%- elif preview -%}<span class="jb-apply off" aria-disabled="true">Ứng tuyển</span>
+{%- elif j.apply -%}<a class="jb-apply" href="{{ j.apply.href }}"{% if j.apply.external %} target="_blank" rel="noopener noreferrer"{% endif %}>Ứng tuyển</a>
+{%- else -%}<a class="jb-apply" href="#cach-ung-tuyen">Cách liên hệ</a>{%- endif %}
+{%- endmacro %}
+{% macro section(title, items) -%}
+{% if items %}<h2>{{ title }}</h2><ul>{% for x in items %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+{%- endmacro %}
+
+<div class="jb-dhead">
+  <div class="jb-dco">{{ avatar(j, true) }}<div><b>{{ j.company_or_unknown }}</b>{% if j.location %}<div class="jb-dmeta">{{ j.location }}</div>{% endif %}</div></div>
+  <h1>{{ j.title }}</h1>
+  <div class="jb-dmeta">
+    <span>{{ j.posted }}</span>
+    {% if j.deadline %}<span>· {{ 'Hết hạn' if j.expired else 'Hạn nộp' }} {{ j.deadline | date }}{% if j.days_left is not none %} (còn {{ j.days_left }} ngày){% endif %}</span>{% endif %}
+    {% if j.is_new %}<span class="badge-new">Mới</span>{% endif %}
+  </div>
+  <div class="jb-chips">
+    {% if j.salary_long %}<span class="jb-chip sal">{{ j.salary_long }}</span>{% endif %}
+    {% if j.mode_label %}<span class="jb-chip">{{ j.mode_label }}</span>{% endif %}
+    {% if j.level %}<span class="jb-chip">{{ j.level }}</span>{% endif %}
+    {% if j.job_type %}<span class="jb-chip">{{ j.job_type }}</span>{% endif %}
+    {% if j.headcount %}<span class="jb-chip">Tuyển {{ j.headcount }} người</span>{% endif %}
+  </div>
+  {% if admin %}
+  <div class="jb-actions admin">
+    <a class="jb-apply" href="/admin/jobs/{{ j.id }}">Sửa</a>
+    <button class="jb-ghost" type="button" data-act="status" data-id="{{ j.id }}" data-to="{{ 'draft' if j.status == 'published' else 'published' }}">{{ 'Gỡ tin' if j.status == 'published' else 'Đăng' }}</button>
+    {% if j.status == 'published' %}<a class="jb-ghost" href="/viec-lam/{{ j.slug }}" target="_blank" rel="noopener">Xem trên site</a>{% endif %}
+    <button class="jb-ghost danger" type="button" data-act="del" data-id="{{ j.id }}">Xoá</button>
+  </div>
+  {% else %}
+  <div class="jb-actions">
+    {{ apply_btn(j, preview) }}
+    {% if not preview %}<button class="jb-ghost" type="button" data-share data-path="/viec-lam/{{ j.slug }}">Sao chép link</button>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="jb-dbody">
+  {% if admin and j.status == 'draft' %}<div class="jb-warn">Bản nháp: chỉ admin nhìn thấy, người dùng chưa thấy tin này.</div>{% endif %}
+  {% if j.expired %}<div class="jb-warn">Tin này đã hết hạn nộp hồ sơ.</div>
+  {% elif j.brief %}<div class="jb-warn">Tin này chỉ có thông tin khái quát. Hãy liên hệ trực tiếp để biết thêm chi tiết.</div>{% endif %}
+  {{ section('Mô tả công việc', j.description) }}
+  {{ section('Yêu cầu', j.requirements) }}
+  {{ section('Quyền lợi', j.benefits) }}
+  {% if j.skills %}
+  <h2>Kỹ năng</h2>
+  <p class="topics" style="margin:0">{% for s in j.skills %}<a class="topic-pill-sm" href="/viec-lam?q={{ s | urlencode }}">{{ s }}</a>{% endfor %}</p>
+  {% endif %}
+  <section class="apply-box" id="cach-ung-tuyen">
+    <h3>Cách ứng tuyển</h3>
+    {% if j.contact_email or j.contact_phone or j.contact_person or j.contact_link %}
+    <dl>
+      {% if j.contact_email %}<dt>Email</dt><dd><a href="mailto:{{ j.contact_email }}">{{ j.contact_email }}</a></dd>{% endif %}
+      {% if j.contact_phone %}<dt>SĐT / Zalo</dt><dd>{{ j.contact_phone }}</dd>{% endif %}
+      {% if j.contact_person %}<dt>Người liên hệ</dt><dd>{{ j.contact_person }}</dd>{% endif %}
+      {% if j.contact_link %}<dt>Link ứng tuyển</dt><dd><a href="{{ j.contact_link }}" target="_blank" rel="noopener noreferrer">{{ j.contact_link | replace('https://', '') | replace('http://', '') }}</a></dd>{% endif %}
+    </dl>
+    <p class="hint" style="margin-top:0.6rem">Gợi ý: ghi “Ứng tuyển qua Đọc gì hôm nay” khi liên hệ.</p>
+    {% else %}
+    <p class="hint" style="margin:0">Tin này chưa có thông tin liên hệ.</p>
+    {% endif %}
+  </section>
+  <p class="source-box">Thông tin do nhà tuyển dụng cung cấp, vui lòng xác nhận lại trực tiếp.</p>
+  {% if not admin and not preview %}<div class="jb-mbar">{{ apply_btn(j, false) }}</div>{% endif %}
+</div>

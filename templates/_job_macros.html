@@ -1,0 +1,22 @@
+{# Mảnh dùng chung cho thẻ job ở /viec-lam, /admin/jobs và bản xem trước. #}
+{% macro avatar(j, big=false) -%}
+<div class="jb-avatar{% if big %} lg{% endif %}" style="--h:{{ j.hue }}" aria-hidden="true">{{ j.initial }}</div>
+{%- endmacro %}
+
+{# Phần ruột của thẻ; thẻ bọc ngoài (<a>/<article>) do template gọi quyết định. #}
+{% macro card_inner(j, admin=false) %}
+{{ avatar(j) }}
+<div class="jb-card-body">
+  <div class="jb-title">{{ j.title }}</div>
+  <div class="jb-co">{{ j.company_or_unknown }}</div>
+  <div class="jb-loc">{{ j.location }}{% if j.mode_label %} ({{ j.mode_label }}){% endif %}</div>
+  {% if j.salary_short %}<span class="jb-sal">{{ j.salary_short }}</span>{% endif %}
+  <div class="jb-foot">
+    {% if admin %}<span class="status {{ j.state }}">{{ j.state_label }}</span>
+    {% elif j.expired %}<span class="badge-expired">Đã hết hạn</span>
+    {% elif j.brief %}<span class="badge-brief">Tin khái quát</span>
+    {% elif j.is_new %}<span class="badge-new">Mới</span>{% endif %}
+    <span>{{ j.posted }}</span>
+  </div>
+</div>
+{% endmacro %}

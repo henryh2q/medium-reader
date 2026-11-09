@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype v2 — Đăng job bằng AI | Đọc gì hôm nay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
+<style>:root {
+  --paper: #eef2f4;
+  --sheet: #ffffff;
+  --ink: #1b2631;
+  --muted: #5a6875;
+  --rule: #d3dbe1;
+  --accent: #1d5d86;
+  --marker: #ffe27a;
+  --ui: "Be Vietnam Pro", system-ui, sans-serif;
+  --read: "Literata", Georgia, serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #131a21;
+    --sheet: #1b242d;
+    --ink: #e2e8ee;
+    --muted: #93a2af;
+    --rule: #2b3642;
+    --accent: #83b8dc;
+    --marker: rgba(255, 214, 90, 0.34);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1rem/1.55 var(--ui);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Thanh tiến độ vô định: hiện khi có bài đang dịch, không biểu thị % cụ thể */
+.progress-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 50; overflow: hidden; background: transparent; }
+.progress-bar[hidden] { display: none; }
+.progress-bar-fill { position: absolute; top: 0; bottom: 0; width: 40%; background: var(--accent); animation: progress-slide 1.1s ease-in-out infinite; }
+@keyframes progress-slide {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .progress-bar-fill { animation-duration: 2.4s; } }
+
+/* ---------- Danh sách ---------- */
+.shelf { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+.shelf-head h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
+.shelf-head p { color: var(--muted); margin: 0 0 1.25rem; }
+
+.topic-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1.5rem; }
+.topic-pill {
+  font-size: 0.8125rem; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--rule); border-radius: 999px; padding: 0.3rem 0.75rem;
+}
+.topic-pill:hover { color: var(--ink); border-color: var(--accent); }
+.topic-pill.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.topics { margin: 0.5rem 0 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.topic-pill-sm {
+  font-size: 0.75rem; color: var(--accent); text-decoration: none;
+  background: var(--sheet); border-radius: 999px; padding: 0.15rem 0.6rem;
+}
+.topic-pill-sm:hover { text-decoration: underline; }
+
+.entries { list-style: none; margin: 0; padding: 0; }
+.entry {
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--rule);
+}
+.entry[data-status="translating"] { opacity: 0.5; pointer-events: none; }
+.entry[data-status="translating"] h2 a { pointer-events: auto; }
+.entry h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; }
+.entry h2 a { color: var(--ink); text-decoration: none; }
+.entry h2 a:hover { color: var(--accent); }
+.desc {
+  color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; color: var(--muted); font-size: 0.8125rem; margin: 0.6rem 0 0; }
+.tag { color: var(--ink); background: var(--marker); padding: 0 0.35rem; border-radius: 2px; }
+.tag-err { background: #f6c6c0; }
+.tag-done { background: #cdeccb; }
+.translate-one {
+  display: inline-flex; align-items: center; justify-content: center;
+  vertical-align: middle; margin-left: 0.5rem;
+  color: var(--accent); background: none;
+  border: 1px solid var(--rule); border-radius: 999px; width: 1.75rem; height: 1.75rem;
+  cursor: pointer; padding: 0;
+}
+.translate-one:hover { background: var(--sheet); }
+.translate-one:disabled { opacity: 0.55; cursor: default; }
+.translate-icon { display: block; }
+.batch-fab .translate-icon { width: 20px; height: 20px; }
+.spinner {
+  display: inline-block; vertical-align: middle; margin-left: 0.5rem;
+  width: 1.1rem; height: 1.1rem; border-radius: 999px;
+  border: 2px solid var(--rule); border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.6s; } }
+.empty pre { background: var(--sheet); padding: 0.75rem 1rem; border-radius: 6px; }
+
+/* ---------- Nút nổi: gửi bài / dịch hàng loạt ---------- */
+.batch-fab {
+  position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 25;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 3.25rem; height: 3.25rem; border-radius: 999px; box-sizing: border-box;
+  font-size: 1.4rem; line-height: 1; color: var(--paper); background: var(--ink);
+  border: 0; cursor: pointer; text-decoration: none; box-shadow: 0 8px 20px rgba(10, 20, 30, 0.3);
+}
+.batch-fab:hover { background: var(--accent); color: var(--paper); }
+
+/* ---------- Modal dịch hàng loạt ---------- */
+.modal {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(10, 20, 30, 0.45);
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+.modal[hidden] { display: none; }
+.modal-box {
+  background: var(--sheet); border-radius: 10px; max-width: 32rem; width: 100%;
+  max-height: 80vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 48px rgba(10, 20, 30, 0.3);
+}
+.modal-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--rule); font-weight: 600; }
+.modal-all { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.1rem; border-bottom: 1px solid var(--rule); font-size: 0.875rem; }
+.modal-all[hidden] { display: none; }
+.batch-list { list-style: none; margin: 0; padding: 0.5rem 1.1rem; overflow-y: auto; }
+.batch-list li { padding: 0.4rem 0; }
+.batch-list label { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; }
+.batch-submit {
+  margin: 0.75rem 1.1rem 1.1rem; font: 600 0.875rem var(--ui); color: var(--paper);
+  background: var(--ink); border: 0; border-radius: 6px; padding: 0.6rem; cursor: pointer;
+}
+.batch-submit:disabled { opacity: 0.55; cursor: default; }
+
+/* ---------- Trang đọc ---------- */
+.reader { max-width: 42rem; margin: 0 auto; padding: 1.25rem 1.25rem 6rem; }
+.reader-nav { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-size: 0.9rem; }
+.lang-switch { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 2px; background: var(--sheet); }
+.lang-switch button {
+  font: 500 0.8125rem var(--ui); color: var(--muted);
+  border: 0; background: none; padding: 0.3rem 0.8rem; border-radius: 999px; cursor: pointer;
+}
+.lang-switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+.reader-head { margin: 2.5rem 0 2rem; }
+.reader-head h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); line-height: 1.2; font-weight: 700; letter-spacing: -0.015em; margin: 0; }
+.hint { color: var(--muted); font-size: 0.8125rem; margin: 1rem 0 0; }
+
+.back-to-top {
+  position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 25;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.75rem; height: 2.75rem; border-radius: 999px; box-sizing: border-box;
+  font-size: 1.25rem; line-height: 1; color: var(--ink); background: var(--sheet);
+  border: 1px solid var(--rule); cursor: pointer; box-shadow: 0 4px 12px rgba(10, 20, 30, 0.15);
+}
+.back-to-top[hidden] { display: none; }
+.back-to-top:hover { color: var(--accent); border-color: var(--accent); }
+body.panel-open .back-to-top { display: none; }
+
+.summary-btn {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 25;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.5rem; height: 3rem; padding: 0;
+  color: var(--paper); background: var(--ink); border: 0; cursor: pointer;
+  border-radius: 10px 0 0 10px; box-shadow: 0 4px 12px rgba(10, 20, 30, 0.25);
+}
+.summary-btn:hover { background: var(--accent); }
+body.panel-open .summary-btn { display: none; }
+@media (max-width: 40rem) {
+  .summary-btn {
+    top: auto; bottom: 4.5rem; right: 1.25rem; transform: none;
+    width: 2.75rem; height: 2.75rem; border-radius: 999px;
+  }
+}
+.x-points { margin: 0; padding-left: 1.25rem; font-family: var(--read); line-height: 1.65; }
+.x-points li { margin: 0 0 0.6rem; }
+
+/* ---------- Trang /submit, feedback modal ---------- */
+.back-link { display: inline-block; color: var(--muted); font-size: 0.875rem; text-decoration: none; margin-bottom: 1rem; }
+.back-link:hover { color: var(--accent); }
+.form-block { margin-top: 2rem; }
+.form-block h2 { font-size: 1.15rem; margin: 0 0 0.75rem; }
+.form-block label { display: block; font-size: 0.875rem; color: var(--muted); margin: 0 0 0.4rem; }
+.form-block input, .form-block textarea {
+  width: 100%; box-sizing: border-box; padding: 0.6rem 0.75rem; font: inherit;
+  border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+.form-block button {
+  font: 600 0.875rem var(--ui); color: var(--paper); background: var(--ink);
+  border: 0; border-radius: 6px; padding: 0.6rem 1rem; cursor: pointer;
+}
+.form-block button:disabled { opacity: 0.55; cursor: default; }
+.token-box { display: block; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 0.75rem; word-break: break-all; font-size: 0.9rem; }
+.submit-instructions { padding-left: 1.25rem; line-height: 1.7; }
+.submit-instructions li { margin-bottom: 0.5rem; }
+
+.feedback-fab {
+  position: fixed; left: 1.25rem; bottom: 1.25rem; z-index: 25;
+  font: 600 0.8125rem var(--ui); color: var(--muted); background: var(--sheet);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 0.5rem 0.9rem;
+  cursor: pointer; box-shadow: 0 4px 12px rgba(10, 20, 30, 0.1);
+}
+.feedback-fab:hover { color: var(--ink); border-color: var(--accent); }
+.feedback-body.form-block { margin-top: 0.5rem; padding: 0 1.1rem 1.1rem; }
+.feedback-body select {
+  width: 100%; box-sizing: border-box; padding: 0.6rem 0.75rem; font: inherit;
+  border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+
+body[data-lang="vi"] .lang-en,
+body[data-lang="en"] .lang-vi { display: none; }
+
+.prose { font-family: var(--read); font-size: 1.125rem; line-height: 1.75; }
+.prose h1, .prose h2, .prose h3, .prose h4 { font-family: var(--ui); line-height: 1.3; margin: 2.2rem 0 0.6rem; }
+.prose h1 { font-size: 1.45rem; } .prose h2 { font-size: 1.3rem; } .prose h3 { font-size: 1.12rem; }
+.prose p, .prose ul, .prose ol, .prose blockquote { margin: 0 0 1.2rem; }
+.prose img { max-width: 100%; height: auto; border-radius: 4px; }
+.prose blockquote { border-left: 3px solid var(--rule); padding-left: 1rem; color: var(--muted); font-style: italic; }
+.prose code { font-size: 0.88em; background: var(--sheet); padding: 0.1em 0.3em; border-radius: 3px; }
+.prose pre { background: var(--sheet); border: 1px solid var(--rule); padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+.prose pre code { background: none; padding: 0; }
+.prose table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.95rem; }
+.prose td, .prose th { border: 1px solid var(--rule); padding: 0.4rem 0.6rem; }
+
+.attribution {
+  margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
+  color: var(--muted); font-size: 0.8125rem; line-height: 1.6;
+}
+
+/* Thuật ngữ đã tra: vệt bút dạ quang, chạm để xem lại */
+mark.term {
+  background: linear-gradient(transparent 55%, var(--marker) 55%);
+  color: inherit; cursor: pointer; padding: 0 1px;
+}
+
+/* ---------- Nút & panel giải thích ---------- */
+.explain-btn {
+  position: absolute; z-index: 20;
+  font: 600 0.875rem var(--ui);
+  color: var(--paper); background: var(--ink);
+  border: 0; border-radius: 6px; padding: 0.5rem 0.85rem;
+  box-shadow: 0 6px 18px rgba(10, 20, 30, 0.22);
+  cursor: pointer;
+}
+
+.panel {
+  position: fixed; z-index: 30;
+  right: 0; top: 0; bottom: 0;
+  width: min(24rem, 100%);
+  background: var(--sheet);
+  border-left: 1px solid var(--rule);
+  box-shadow: -12px 0 32px rgba(10, 20, 30, 0.12);
+  display: flex; flex-direction: column;
+  animation: slide-in 0.18s ease-out;
+}
+@keyframes slide-in { from { transform: translateX(16px); opacity: 0; } }
+.panel[hidden] { display: none; }
+.panel-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--rule); }
+.panel-label { font-size: 0.8125rem; color: var(--muted); }
+.panel-close { font-size: 1.5rem; line-height: 1; border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 0.25rem; }
+.panel-body { overflow-y: auto; padding: 1.25rem 1.25rem 2rem; }
+
+.x-term { font-size: 1.4rem; font-weight: 700; margin: 0; }
+.x-term span { background: linear-gradient(transparent 55%, var(--marker) 55%); }
+.x-pronunciation { display: flex; flex-wrap: wrap; gap: 0 0.6rem; margin: 0.3rem 0 0; font-size: 0.875rem; color: var(--muted); }
+.x-ipa { font-family: var(--read); font-style: italic; }
+.x-short { font-family: var(--read); font-size: 1.05rem; line-height: 1.6; margin: 0.6rem 0 0; }
+.x-section { margin-top: 1.4rem; }
+.x-section h3 { font-size: 0.875rem; font-weight: 600; color: var(--accent); margin: 0 0 0.35rem; }
+.x-section p { font-family: var(--read); line-height: 1.65; margin: 0 0 0.6rem; }
+.x-section pre { background: var(--paper); border-radius: 6px; padding: 0.75rem; overflow-x: auto; font-size: 0.8rem; line-height: 1.5; margin: 0.5rem 0 0; }
+.x-status { color: var(--muted); }
+.x-error { color: #b3261e; }
+
+@media (max-width: 40rem) {
+  .panel {
+    top: auto; left: 0; width: 100%; max-height: 72vh;
+    border-left: 0; border-top: 1px solid var(--rule);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -12px 32px rgba(10, 20, 30, 0.16);
+    animation-name: sheet-up;
+  }
+  @keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } }
+  .prose { font-size: 1.0625rem; }
+}
+@media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
+
+/* Màn hình rộng: đẩy bài sang trái để panel không che chữ */
+@media (min-width: 72rem) {
+  .reader { transition: transform 0.18s ease-out; }
+  body.panel-open .reader { transform: translateX(-12rem); }
+}
+@media (min-width: 72rem) and (prefers-reduced-motion: reduce) { .reader { transition: none; } }
+
+/* ---------- Hàng đợi link (admin) + mục extension ở /submit ---------- */
+.admin-nav { display: flex; gap: 1rem; margin: 0 0 1rem; font-size: 0.875rem; }
+.admin-nav a { color: var(--muted); text-decoration: none; padding-bottom: 0.15rem; }
+.admin-nav a.active { color: var(--ink); border-bottom: 2px solid var(--accent); }
+.queue-actions { display: flex; gap: 0.6rem; margin: 0.75rem 0 0; }
+.queue-open, .reject-btn {
+  font: 600 0.8125rem var(--ui); border-radius: 6px; padding: 0.4rem 0.9rem;
+  cursor: pointer; text-decoration: none;
+}
+.queue-open { color: var(--paper); background: var(--ink); border: 1px solid var(--ink); }
+.queue-open:hover { background: var(--accent); border-color: var(--accent); }
+.reject-btn { color: var(--muted); background: none; border: 1px solid var(--rule); }
+.reject-btn:hover { color: #b3261e; border-color: #b3261e; }
+.reject-btn:disabled { opacity: 0.55; cursor: default; }
+.extension-details { margin-top: 2rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+.extension-details summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+.extension-details summary:hover { color: var(--ink); }
+
+/* ---------- Chia sẻ bài viết ---------- */
+.share-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0; }
+.share-action {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font: 500 0.8125rem var(--ui); color: var(--muted); background: var(--sheet);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 0.35rem 0.8rem; cursor: pointer;
+}
+.share-action[hidden] { display: none; }
+.share-action:hover { color: var(--ink); border-color: var(--accent); }
+
+/* ---------- Tìm kiếm ở trang chủ ---------- */
+.search-form { display: flex; gap: 0.4rem; margin: 0 0 1rem; }
+.search-form input[type="search"] {
+  flex: 1; min-width: 0; font: inherit; font-size: 1rem; color: var(--ink);
+  background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; padding: 0.55rem 1rem;
+  -webkit-appearance: none; appearance: none;
+}
+.search-form input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.search-form button {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 2.6rem; color: var(--paper); background: var(--ink); border: 0; border-radius: 999px; cursor: pointer;
+}
+.search-form button:hover { background: var(--accent); }
+.search-summary { color: var(--muted); font-size: 0.875rem; margin: -0.5rem 0 1.25rem; }
+mark.hit { background: var(--marker); color: inherit; border-radius: 2px; padding: 0 0.1em; }
+.snippet { color: var(--muted); font-size: 0.85rem; font-style: italic; margin: 0.4rem 0 0; line-height: 1.5; }
+
+/* ---------- Nút dịch ở trang đọc bài chưa dịch ---------- */
+.title-row h1 { display: inline; }
+.translate-one[hidden] { display: none; }
+.translate-head { vertical-align: middle; margin-left: 0.6rem; width: 2rem; height: 2rem; }
+.translate-head .translate-icon { width: 18px; height: 18px; }
+.translate-bar:has(> :not([hidden])) { margin: 0.9rem 0 0; }
+.translate-status[hidden], .translate-error[hidden], .translate-reload[hidden] { display: none; }
+.translate-status { display: flex; align-items: center; gap: 0.6rem; margin: 0; font-size: 0.875rem; color: var(--muted); }
+.translate-status .spinner { margin-left: 0; }
+.translate-error { margin: 0; font-size: 0.8125rem; color: #b3261e; }
+.translate-reload {
+  font: 600 0.8125rem var(--ui); color: var(--paper); background: var(--ink);
+  border: 0; border-radius: 999px; padding: 0.4rem 0.9rem; cursor: pointer;
+}
+.translate-reload:hover { background: var(--accent); }
+.translated-body { padding: 1.1rem; }
+.translated-body p { margin: 0; }
+.translated-body .batch-submit { margin: 1rem 0 0; width: 100%; }
+
+/* ---- khung prototype ---- */
+body { padding-bottom: 3rem; }
+.proto-bar { position: sticky; top: 0; z-index: 50; background: var(--sheet); border-bottom: 1px solid var(--rule); padding: 0.6rem 1rem; display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.proto-bar b { margin-right: 0.6rem; font-size: 0.75rem; color: #b3261e; letter-spacing: 0.02em; }
+.proto-tab { font: 500 0.8125rem var(--ui); border: 1px solid var(--rule); background: none; border-radius: 999px; padding: 0.3rem 0.8rem; color: var(--muted); cursor: pointer; }
+.proto-tab:hover { color: var(--ink); border-color: var(--accent); }
+.proto-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.proto-screen { display: none; padding: 1.25rem 1rem 3rem; }
+.proto-screen.active { display: block; }
+.proto-note { max-width: 46rem; margin: 0 auto 1rem; background: #fff6d6; border: 1px solid #e8d48a; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; line-height: 1.55; color: #4d3f00; }
+.proto-note code { background: rgba(0,0,0,0.07); padding: 0 0.25rem; border-radius: 3px; }
+.seg { display: inline-flex; border: 1px solid #d9c46a; border-radius: 999px; padding: 2px; background: #fffbea; }
+.seg-btn { font: 500 0.8rem var(--ui); border: 0; background: none; padding: 0.3rem 0.8rem; border-radius: 999px; color: #6b5a00; cursor: pointer; }
+.seg-btn.active { background: #4d3f00; color: #fff; }
+
+/* ---- tab Bài viết | Việc làm ---- */
+.site-tabs { display: flex; gap: 1.4rem; margin: 0 0 1rem; border-bottom: 1px solid var(--rule); }
+.site-tabs a { padding: 0.5rem 0; font-weight: 600; font-size: 0.95rem; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.site-tabs a.active { color: var(--ink); border-bottom-color: var(--accent); }
+.site-tabs .count { font-weight: 500; font-size: 0.72rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; padding: 0 0.45rem; margin-left: 0.4rem; }
+
+/* ---- bộ lọc + thẻ job ---- */
+.filter-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.6rem; align-items: center; }
+.filter-label { font-size: 0.75rem; color: var(--muted); min-width: 4.2rem; }
+.select-pill { font: inherit; font-size: 0.8125rem; color: var(--muted); background: var(--sheet); border: 1px solid var(--rule); border-radius: 999px; padding: 0.3rem 0.8rem; }
+.job-card { padding: 1.25rem 0; border-top: 1px solid var(--rule); list-style: none; }
+.job-card[hidden] { display: none; }
+.job-top { display: flex; gap: 0.6rem; align-items: baseline; justify-content: space-between; }
+.job-card h2 { font-size: 1.15rem; font-weight: 600; line-height: 1.35; margin: 0; }
+.job-card h2 a { color: var(--ink); text-decoration: none; }
+.job-card h2 a:hover { color: var(--accent); }
+.job-company { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--ink); }
+.job-facts { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 0; }
+.fact { font-size: 0.78rem; border: 1px solid var(--rule); border-radius: 6px; padding: 0.1rem 0.55rem; color: var(--muted); background: var(--sheet); }
+.fact.salary { color: #14633a; border-color: #a9d9bb; background: #eaf7ef; font-weight: 600; }
+.badge-new, .badge-brief, .badge-expired { flex-shrink: 0; font-size: 0.7rem; font-weight: 600; border-radius: 4px; padding: 0.1rem 0.45rem; }
+.badge-new { background: var(--marker); color: #3d3000; }
+.badge-brief { background: #e3ecf7; color: #1d4a73; }
+.badge-expired { background: #ececec; color: #666; }
+.job-card.expired { opacity: 0.55; }
+.job-card .meta .src { color: var(--accent); }
+
+/* ---- chi tiết job ---- */
+.facts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 1.5rem; margin: 1.25rem 0; padding: 1rem 1.25rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; }
+.facts-grid small { display: block; color: var(--muted); font-size: 0.75rem; margin-bottom: 0.15rem; }
+.facts-grid b { font-weight: 600; font-size: 0.95rem; }
+.salary-text { color: #14633a; }
+.job-prose h3 { font-size: 1.05rem; margin: 1.4rem 0 0.5rem; }
+.apply-box { margin-top: 1.5rem; background: var(--sheet); border: 1px solid var(--accent); border-radius: 10px; padding: 1rem 1.25rem; }
+.apply-box h3 { margin: 0 0 0.6rem; font-size: 1.05rem; }
+.apply-box dl { display: grid; grid-template-columns: 8.5rem 1fr; gap: 0.4rem 1rem; margin: 0; }
+.apply-box dt { color: var(--muted); font-size: 0.85rem; }
+.apply-box dd { margin: 0; font-size: 0.95rem; }
+.source-box { margin: 1.25rem 0 0; font-size: 0.8125rem; color: var(--muted); line-height: 1.6; }
+.brief-banner { background: #e3ecf7; color: #1d4a73; border-radius: 8px; padding: 0.7rem 1rem; font-size: 0.875rem; margin-bottom: 1rem; }
+.variant[hidden] { display: none; }
+.step .device .m-screen, .step .device .field label { text-align: left; }
+.facts-grid .topic-pill-sm { background: var(--paper); }
+
+/* ---- khung điện thoại + form ---- */
+.split { display: flex; gap: 2rem; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.device { position: relative; width: 390px; max-width: 100%; height: 780px; border: 10px solid #111; border-radius: 40px; overflow: hidden; background: var(--paper); box-shadow: 0 20px 50px rgba(10, 20, 30, 0.25); }
+.device.small { width: 300px; height: 560px; border-width: 8px; border-radius: 32px; }
+.device-status { display: flex; justify-content: space-between; padding: 0.7rem 1.4rem 0.2rem; font-size: 0.75rem; font-weight: 600; }
+.device .m-screen { height: calc(100% - 2rem); overflow-y: auto; padding: 0.8rem 1.1rem 2rem; }
+.device.small .m-screen { height: 100%; padding-top: 1.4rem; }
+.m-title { font-size: 1.6rem; margin: 0.3rem 0 0.2rem; }
+.field { margin-bottom: 0.9rem; }
+.field label, .contact legend { display: block; font-size: 0.8125rem; color: var(--muted); margin-bottom: 0.3rem; }
+.field small { display: block; color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem; }
+.field input, .field textarea, .field select { width: 100%; font: inherit; font-size: 0.95rem; padding: 0.55rem 0.7rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); color: var(--ink); }
+.field.missing input, .field.missing textarea { border-color: #e0a800; background: #fffbea; }
+.field.warn input { border-color: #6fa3d8; background: #f3f8fd; }
+.flag { font-size: 0.65rem; font-weight: 700; border-radius: 3px; padding: 0.05rem 0.35rem; margin-left: 0.3rem; vertical-align: middle; }
+.flag.miss { background: #fbe39b; color: #5b4300; }
+.flag.img { background: #cfe3f7; color: #1d4a73; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chip { font: 500 0.8125rem var(--ui); border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); border-radius: 999px; padding: 0.3rem 0.8rem; cursor: pointer; }
+.chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.thumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.add-tile, .thumb { width: 4.6rem; height: 4.6rem; border-radius: 10px; }
+.add-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem; border: 1.5px dashed var(--accent); background: none; color: var(--accent); font: 500 0.7rem var(--ui); cursor: pointer; }
+.thumb { position: relative; background: linear-gradient(135deg, #7aa7c7, #1d5d86); display: flex; align-items: flex-end; padding: 0.3rem; color: #fff; font-size: 0.65rem; }
+.thumb:nth-child(2n) { background: linear-gradient(135deg, #e0b36a, #b3741d); }
+.thumb:nth-child(3n) { background: linear-gradient(135deg, #8fc7a3, #2a7a4a); }
+.btn-primary { width: 100%; font: 600 0.95rem var(--ui); color: var(--paper); background: var(--ink); border: 0; border-radius: 10px; padding: 0.75rem; cursor: pointer; }
+.btn-primary:hover { background: var(--accent); }
+.btn-ghost { font: 600 0.875rem var(--ui); color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem 1rem; cursor: pointer; }
+.btn-ghost.danger { color: #b3261e; }
+.overlay { position: absolute; inset: 0; background: rgba(10, 20, 30, 0.5); display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.overlay[hidden] { display: none; }
+.overlay-box { background: var(--sheet); border-radius: 14px; padding: 1.4rem; width: 100%; display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; }
+.progress-inline { width: 100%; height: 4px; background: var(--rule); border-radius: 2px; overflow: hidden; position: relative; }
+.progress-inline div { position: absolute; top: 0; bottom: 0; width: 40%; background: var(--accent); animation: progress-slide 1.1s ease-in-out infinite; }
+.decisions { max-width: 24rem; font-size: 0.875rem; line-height: 1.6; color: var(--muted); padding-left: 1.1rem; }
+.decisions li { margin-bottom: 0.6rem; }
+.decisions code, .api-box code { background: var(--sheet); padding: 0 0.25rem; border-radius: 3px; }
+
+/* ---- duyệt bản nháp ---- */
+.draft-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 2rem; align-items: start; }
+.draft-form { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 1.25rem; }
+.contact { border: 1px solid var(--rule); border-radius: 8px; padding: 0.8rem 0.9rem 0.2rem; margin: 0 0 1rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.actions .btn-primary { width: auto; padding: 0.6rem 1.4rem; }
+.draft-side h3 { font-size: 0.95rem; margin: 0 0 0.6rem; }
+.src-img { height: 11rem; border-radius: 10px; background: linear-gradient(135deg, #cfd9e2, #aebccb); display: flex; align-items: flex-end; padding: 0.6rem; font-size: 0.75rem; color: #334; margin-bottom: 0.7rem; }
+.src-img.alt { height: 7rem; background: linear-gradient(135deg, #e6dccb, #cdbd9f); }
+.raw { font-size: 0.85rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem 0.8rem; }
+
+/* ---- Shortcut ---- */
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; justify-items: center; max-width: 72rem; margin: 0 auto; }
+.step { text-align: center; }
+.step h3 { margin: 0.6rem 0 0.8rem; font-size: 1rem; }
+.step-n { display: inline-flex; width: 1.7rem; height: 1.7rem; align-items: center; justify-content: center; border-radius: 999px; background: var(--ink); color: var(--paper); font-weight: 700; font-size: 0.85rem; }
+.sheet-bg { background: linear-gradient(#5d6b7a, #3b4652); padding: 0 !important; display: flex; align-items: flex-end; }
+.share-sheet { width: 100%; background: #f2f2f7; color: #111; border-radius: 16px 16px 0 0; padding: 0.6rem 0.9rem 1.2rem; text-align: left; }
+.grabber { width: 2.4rem; height: 4px; border-radius: 2px; background: #c7c7cc; margin: 0 auto 0.6rem; }
+.ss-title { display: block; font-size: 0.8rem; margin-bottom: 0.7rem; }
+.ss-apps { display: flex; gap: 0.6rem; margin-bottom: 0.8rem; }
+.ss-apps i { font-style: normal; font-size: 0.55rem; color: #fff; width: 3rem; height: 3rem; border-radius: 12px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 0.25rem; }
+.ss-actions { list-style: none; margin: 0; padding: 0; background: #fff; border-radius: 10px; font-size: 0.82rem; }
+.ss-actions li { padding: 0.6rem 0.8rem; border-bottom: 1px solid #e5e5ea; }
+.ss-actions li:last-child { border: 0; }
+.ss-actions li.hl { background: #fff4d6; font-weight: 600; }
+.sc-icon { display: inline-flex; width: 1.2rem; height: 1.2rem; border-radius: 5px; background: #ff9f0a; align-items: center; justify-content: center; font-size: 0.7rem; margin-right: 0.3rem; }
+.sc-bg { background: #e9e9ee; display: flex; flex-direction: column; gap: 0.6rem; }
+.sc-card { background: #fff; color: #111; border-radius: 12px; padding: 0.65rem 0.8rem; text-align: left; font-size: 0.8rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.sc-card small { display: block; color: #6b6b72; font-size: 0.68rem; }
+.sc-card b { display: block; color: #0a60c9; margin: 0.1rem 0; }
+.notif { background: #fff; border: 1px solid var(--rule); border-radius: 14px; padding: 0.6rem 0.8rem; box-shadow: 0 6px 16px rgba(0,0,0,0.12); text-align: left; font-size: 0.8rem; display: flex; flex-direction: column; }
+.notif span { color: var(--muted); font-size: 0.75rem; }
+.api-box { max-width: 46rem; margin: 2rem auto 0; }
+.api-box pre { background: #14202b; color: #d7e6f2; padding: 1rem 1.1rem; border-radius: 10px; font-size: 0.78rem; line-height: 1.6; overflow-x: auto; }
+.api-box pre code { background: none; color: inherit; }
+
+@media (max-width: 52rem) {
+  .draft-grid { grid-template-columns: 1fr; }
+  .facts-grid { grid-template-columns: 1fr; }
+  .apply-box dl { grid-template-columns: 1fr; }
+}
+.sample-bar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.sample-bar label { font-size: 0.8125rem; color: var(--muted); }
+.flag.inf { background: #e6d9f6; color: #4a2a7a; }
+.flag.apx { background: #d6efe0; color: #14633a; }
+.field.inferred input { border-color: #b79ad9; background: #f8f3fd; }
+.draft-form h3 { font-size: 0.95rem; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+.draft-form h3:first-child { margin-top: 0; padding-top: 0; border: 0; }
+.draft-form h3 small { font-weight: 400; color: var(--muted); margin-left: 0.4rem; }
+.job-edit { border: 1px solid var(--rule); border-radius: 10px; padding: 0.9rem 1rem 0.2rem; margin-bottom: 0.8rem; background: var(--paper); }
+.job-edit.off { opacity: 0.55; }
+.job-check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.7rem; cursor: pointer; }
+.job-check input { width: auto; margin: 0; }
+.job-check small { font-weight: 400; color: var(--muted); }
+.contact-row { display: grid; grid-template-columns: 9.5rem 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+.contact-row select, .contact-row input { font: inherit; font-size: 0.9rem; padding: 0.5rem 0.6rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); color: var(--ink); min-width: 0; }
+.add-link { font: 500 0.8125rem var(--ui); color: var(--accent); background: none; border: 0; padding: 0.2rem 0; cursor: pointer; }
+.warn-box { background: #fff6d6; border: 1px solid #e8d48a; color: #4d3f00; border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 0.8rem; margin-bottom: 0.8rem; line-height: 1.5; }
+.warn-box.info { background: #e3ecf7; border-color: #b9cfe8; color: #1d4a73; }
+.src-img { position: relative; }
+.src-img.t1 { background: linear-gradient(135deg, #b0126e, #3a2bb5); color: #fff; }
+.src-img.t2 { background: linear-gradient(135deg, #d6302a, #8e1010); color: #fff; }
+.src-img.t3 { background: linear-gradient(135deg, #cfd9e2, #aebccb); }
+.src-img.t4 { background: linear-gradient(135deg, #f1f3f5, #d8dde2); }
+.src-img.t5 { background: linear-gradient(135deg, #dbe7f5, #b6cde8); }
+@media (max-width: 52rem) { .contact-row { grid-template-columns: 1fr; } }
+
+
+/* ================= Jobs v2: Admin (1 textarea + 1 file) + User ================= */
+.proto-group { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; color: var(--muted); margin: 0 0.1rem 0 0.9rem; }
+.proto-group:first-of-type { margin-left: 0.2rem; }
+.page { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+.page.wide { max-width: 64rem; }
+.page h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 0.25rem; }
+.page .lead { color: var(--muted); margin: 0 0 1.25rem; }
+.head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.btn-main { font: 600 0.9rem var(--ui); color: var(--paper); background: var(--ink); border: 0; border-radius: 10px; padding: 0.65rem 1.2rem; cursor: pointer; }
+.btn-main:hover:not(:disabled) { background: var(--accent); }
+.btn-main:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-sm { font: 600 0.78rem var(--ui); border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 6px; padding: 0.3rem 0.65rem; cursor: pointer; }
+.btn-sm:hover { border-color: var(--accent); }
+.btn-sm.danger { color: #b3261e; }
+
+/* admin: danh sách */
+.row { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 1rem 0; border-top: 1px solid var(--rule); list-style: none; }
+.row h2 { font-size: 1.05rem; font-weight: 600; margin: 0; line-height: 1.35; }
+.row .sub { margin: 0.15rem 0 0; font-size: 0.875rem; color: var(--muted); }
+.row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; flex-shrink: 0; justify-content: flex-end; }
+.status { font-size: 0.7rem; font-weight: 700; border-radius: 4px; padding: 0.1rem 0.45rem; margin-left: 0.4rem; vertical-align: middle; }
+.status.published { background: #cdeccb; color: #17501a; }
+.status.draft { background: #fbe39b; color: #5b4300; }
+.status.expired { background: #ececec; color: #666; }
+.toast { background: #eaf7ef; border: 1px solid #a9d9bb; color: #14633a; border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.875rem; margin-bottom: 1rem; }
+.toast[hidden] { display: none; }
+.toast a { color: inherit; font-weight: 600; }
+
+/* admin: đăng job (1 textarea + 1 file) */
+.post-card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 1.4rem; }
+.post-card .field textarea { min-height: 13rem; line-height: 1.55; resize: vertical; }
+.or { text-align: center; color: var(--muted); font-size: 0.8rem; margin: -0.2rem 0 0.9rem; }
+.dropzone { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; border: 1.5px dashed var(--accent); border-radius: 12px; padding: 1.3rem 1rem; text-align: center; color: var(--muted); cursor: pointer; font-size: 0.875rem; }
+.dropzone:hover, .dropzone.over { background: var(--paper); }
+.dropzone b { color: var(--accent); font-weight: 600; }
+.dropzone input { display: none; }
+.dropzone[hidden] { display: none; }
+.file-chip { display: flex; align-items: center; gap: 0.7rem; border: 1px solid var(--rule); border-radius: 10px; padding: 0.6rem 0.8rem; background: var(--paper); font-size: 0.9rem; }
+.file-chip[hidden] { display: none; }
+.file-ext { font-size: 0.65rem; font-weight: 700; background: var(--accent); color: #fff; border-radius: 4px; padding: 0.2rem 0.4rem; text-transform: uppercase; }
+.file-chip small { color: var(--muted); }
+.file-chip .x { margin-left: auto; background: none; border: 0; font-size: 1.2rem; line-height: 1; color: var(--muted); cursor: pointer; }
+.samples { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0 0 1rem; font-size: 0.8125rem; color: var(--muted); }
+.progress-card { text-align: left; }
+.steps { list-style: none; padding: 0; margin: 1rem 0 0; }
+.steps li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; color: var(--muted); font-size: 0.95rem; }
+.steps li .ic { width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 2px solid var(--rule); flex-shrink: 0; }
+.steps li.doing { color: var(--ink); font-weight: 600; }
+.steps li.doing .ic { border-color: var(--accent); border-top-color: transparent; animation: spin 0.8s linear infinite; }
+.steps li.done { color: #14633a; }
+.steps li.done .ic { background: #2a7a4a; border-color: #2a7a4a; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* admin: duyệt kết quả */
+.field.missing select { border-color: #e0a800; background: #fffbea; }
+.field.inferred textarea, .field.inferred select { border-color: #b79ad9; background: #f8f3fd; }
+.field.fromfile input, .field.fromfile textarea, .field.fromfile select { border-color: #6fa3d8; background: #f3f8fd; }
+.salary-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem; }
+.check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; margin-top: 0.4rem; color: var(--ink); }
+.check input { width: auto !important; margin: 0; }
+.draft-form h3 { font-size: 0.95rem; margin: 1.3rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+.draft-form h3:first-child { margin-top: 0; padding-top: 0; border: 0; }
+.src-text { white-space: pre-wrap; font-size: 0.82rem; line-height: 1.55; max-height: 16rem; overflow: auto; }
+.json-box { margin-top: 0.8rem; }
+.json-box summary { cursor: pointer; font-size: 0.85rem; color: var(--accent); }
+.json-box pre { background: #14202b; color: #d7e6f2; padding: 0.8rem 1rem; border-radius: 10px; font-size: 0.74rem; line-height: 1.55; overflow: auto; max-height: 22rem; }
+.legend { font-size: 0.78rem; color: var(--muted); line-height: 1.9; }
+.cnt { font-weight: 600; }
+
+/* user: bố cục kiểu LinkedIn Jobs */
+.u-empty { color: var(--muted); padding: 2rem 1rem; font-size: .9rem; }
+.jb-app { max-width: 76rem; margin: 0 auto; border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); overflow: hidden; }
+.jb-top { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; padding: .7rem 1.1rem; background: var(--sheet); border-bottom: 1px solid var(--rule); }
+.jb-brand { font-weight: 700; font-size: 1.05rem; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.jb-top .site-tabs { margin: 0; border: 0; gap: 1rem; }
+.jb-top .site-tabs a { padding: .3rem 0; }
+.jb-search { flex: 1; min-width: 14rem; display: flex; align-items: center; gap: .5rem; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 0 .7rem; color: var(--muted); }
+.jb-search input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: .92rem; padding: .55rem 0; color: var(--ink); outline: none; }
+.jb-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.jb-filters { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; padding: .6rem 1.1rem; background: var(--sheet); border-bottom: 1px solid var(--rule); }
+.jb-pill { font: 500 .84rem var(--ui); border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 999px; padding: .32rem .85rem; cursor: pointer; white-space: nowrap; }
+.jb-pill:hover { border-color: var(--accent); }
+.jb-pill.on { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
+.jb-clear { font: 500 .84rem var(--ui); color: var(--accent); background: none; border: 0; cursor: pointer; padding: .3rem .4rem; }
+.jb-layout { display: grid; grid-template-columns: minmax(18rem, 25rem) 1fr; height: 44rem; }
+.jb-list { overflow-y: auto; background: var(--sheet); border-right: 1px solid var(--rule); }
+.jb-list-head { position: sticky; top: 0; z-index: 1; padding: .75rem 1rem; font-size: .8rem; color: var(--muted); background: var(--sheet); border-bottom: 1px solid var(--rule); }
+.jb-list-head b { color: var(--ink); }
+.jb-card { display: flex; gap: .8rem; padding: 1rem 1rem 1rem 1.1rem; border-bottom: 1px solid var(--rule); cursor: pointer; position: relative; }
+.jb-card:hover, .jb-card.sel { background: var(--paper); }
+.jb-card.sel::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); }
+.jb-card.expired { opacity: .55; }
+.jb-avatar { --h: 210; flex: 0 0 3rem; width: 3rem; height: 3rem; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: #fff; background: hsl(var(--h) 45% 42%); }
+.jb-avatar.lg { flex-basis: 4rem; width: 4rem; height: 4rem; font-size: 1.6rem; }
+.jb-card-body { min-width: 0; }
+.jb-title { font-weight: 600; font-size: .98rem; line-height: 1.3; color: var(--accent); }
+.jb-card.sel .jb-title, .jb-card:hover .jb-title { text-decoration: underline; }
+.jb-co { font-size: .86rem; margin-top: .1rem; }
+.jb-loc { font-size: .82rem; color: var(--muted); }
+.jb-sal { display: inline-block; margin-top: .35rem; font-size: .78rem; font-weight: 600; color: #14633a; background: #eaf7ef; border-radius: 4px; padding: .05rem .45rem; }
+.jb-foot { margin-top: .35rem; font-size: .76rem; color: var(--muted); display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.jb-detail { overflow-y: auto; background: var(--sheet); }
+.jb-dhead { padding: 1.4rem 1.6rem 1.1rem; border-bottom: 1px solid var(--rule); }
+.jb-dco { display: flex; align-items: center; gap: .8rem; }
+.jb-dhead h1 { font-size: 1.5rem; line-height: 1.25; font-weight: 700; margin: .9rem 0 .25rem; letter-spacing: -.01em; }
+.jb-dmeta { color: var(--muted); font-size: .9rem; display: flex; flex-wrap: wrap; gap: .2rem .6rem; align-items: center; }
+.jb-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin: .9rem 0; }
+.jb-chip { font-size: .82rem; font-weight: 600; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: .25rem .6rem; }
+.jb-chip.sal { color: #14633a; background: #eaf7ef; border-color: #a9d9bb; }
+.jb-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+.jb-apply { font: 600 .95rem var(--ui); background: var(--accent); color: var(--sheet); border: 0; border-radius: 999px; padding: .55rem 1.5rem; cursor: pointer; }
+.jb-apply:disabled { opacity: .45; cursor: not-allowed; }
+.jb-ghost { font: 600 .95rem var(--ui); background: none; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: .5rem 1.2rem; cursor: pointer; }
+.jb-dbody { padding: 1.2rem 1.6rem 2.5rem; }
+.jb-dbody h2 { font-size: 1.05rem; margin: 1.5rem 0 .5rem; }
+.jb-dbody h2:first-child { margin-top: 0; }
+.jb-dbody ul { margin: 0; padding-left: 1.2rem; line-height: 1.65; font-size: .95rem; }
+.jb-dbody li { margin-bottom: .3rem; }
+.jb-dbody .apply-box { margin-top: 1.6rem; }
+.jb-warn { background: #e3ecf7; color: #1d4a73; border-radius: 8px; padding: .6rem .9rem; font-size: .85rem; margin-bottom: 1rem; }
+/* mobile */
+.jb-mtop { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin: 0 0 .6rem; }
+.jb-scroll { display: flex; gap: .4rem; overflow-x: auto; padding: 0 0 .6rem; }
+.device .jb-card { margin: 0 -1.1rem; }
+.device .jb-detail-m { margin: 0 -1.1rem; }
+.jb-back { background: none; border: 0; font: 500 .9rem var(--ui); color: var(--accent); cursor: pointer; padding: 0 0 .6rem; }
+.jb-mbar { position: sticky; bottom: -2rem; margin: 1.4rem -1.1rem -2rem; padding: .7rem 1.1rem 1rem; background: var(--sheet); border-top: 1px solid var(--rule); }
+.jb-mbar .jb-apply { width: 100%; }
+.jb-dhead.m, .jb-dbody.m { padding-left: 1.1rem; padding-right: 1.1rem; }
+@container vp (max-width: 52rem) { .jb-layout { grid-template-columns: 1fr; height: auto; } .jb-detail { display: none; } }
+/* duyệt kết quả AI: cùng bố cục với user site (form trái, xem trước phải) */
+.jb-layout.rv { grid-template-columns: minmax(22rem, 30rem) 1fr; height: 48rem; }
+.jb-form { padding: 1rem 1.1rem 2rem; }
+.jb-form .field { margin-bottom: .8rem; }
+.jb-form h3 { font-size: .92rem; margin: 1.2rem 0 .6rem; padding-top: .9rem; border-top: 1px solid var(--rule); }
+.jb-form h3:first-of-type { margin-top: .4rem; padding-top: 0; border: 0; }
+.jb-form .salary-row { grid-template-columns: 1fr 1fr; }
+.jb-form .warn-box { margin-bottom: 1rem; }
+.jb-top .rv-actions { margin-left: auto; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.jb-top .rv-actions .jb-apply, .jb-top .rv-actions .jb-ghost { padding: .4rem 1.1rem; font-size: .88rem; }
+.rv-title { font-weight: 700; font-size: 1.02rem; }
+.jb-prev-label { display: flex; justify-content: space-between; align-items: center; padding: .55rem 1.1rem; font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--paper); border-bottom: 1px solid var(--rule); }
+#rv-preview-card .jb-card { cursor: default; border-bottom: 0; }
+#rv-preview-card { border-bottom: 1px solid var(--rule); }
+.jb-form details { margin-top: 1.2rem; border-top: 1px solid var(--rule); padding-top: .9rem; }
+.jb-form summary { cursor: pointer; font-size: .85rem; color: var(--accent); }
+.jb-form .src-text { margin-top: .6rem; }
+@container vp (max-width: 52rem) { .jb-layout.rv { grid-template-columns: 1fr; height: auto; } .jb-layout.rv .jb-detail { display: block; } }
+/* admin: danh sách cùng bố cục user site; hẹp thì gập thành danh sách -> chi tiết */
+.jb-top .admin-nav { margin: 0; }
+.jb-top .jb-apply { padding: .45rem 1.1rem; font-size: .88rem; }
+.jb-app .toast { margin: 0; border-radius: 0; border-width: 0 0 1px; }
+.jb-ghost.danger { color: #b3261e; border-color: #b3261e; }
+/* duyệt kết quả: tóm tắt nhanh + chip nhảy tới ô cần xem + tab Kết quả/Chỉnh sửa trên điện thoại */
+#screen-a-review .jb-app { overflow: clip; }
+.rv-bar { padding: .7rem 1.1rem; background: var(--sheet); border-bottom: 1px solid var(--rule); font-size: .85rem; }
+.rv-sum { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.rv-jump { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .55rem; }
+.rv-chip { font: 600 .76rem var(--ui); border: 1px solid; border-radius: 999px; padding: .2rem .65rem; cursor: pointer; }
+.rv-chip.missing { background: #fffbea; border-color: #e0a800; color: #5b4300; }
+.rv-chip.inferred { background: #f8f3fd; border-color: #b79ad9; color: #4a2a7a; }
+.rv-ok { color: #14633a; font-weight: 600; }
+.rv-notes { margin-top: .55rem; }
+.rv-notes summary { cursor: pointer; color: var(--accent); }
+.rv-notes ul { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--muted); line-height: 1.6; }
+.rv-tabs { display: none; gap: .4rem; padding: .5rem 1.1rem; background: var(--sheet); border-bottom: 1px solid var(--rule); }
+.rv-tabs button { flex: 1; font: 600 .85rem var(--ui); padding: .45rem; border: 1px solid var(--rule); background: none; border-radius: 8px; color: var(--muted); cursor: pointer; }
+.rv-tabs button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+@container vp (max-width: 52rem) {
+  .rv-tabs { display: flex; }
+  .rv-sticky { position: sticky; top: 0; z-index: 5; }
+  .jb-layout.rv[data-view="result"] .jb-form { display: none; }
+  .jb-layout.rv[data-view="edit"] .jb-detail { display: none; }
+}
+.adm-back { display: none; padding: .8rem 1.1rem 0; }
+@container vp (max-width: 52rem) {
+  .jb-layout.adm .jb-detail { display: block; }
+  .jb-layout.adm[data-view="list"] .jb-detail, .jb-layout.adm[data-view="detail"] .jb-list { display: none; }
+  .adm-back { display: block; }
+  .jb-layout.adm .jb-card.sel { background: none; }
+  .jb-layout.adm .jb-card.sel::before { display: none; }
+  .jb-top { gap: .6rem .9rem; }
+  .jb-search { order: 9; flex-basis: 100%; }
+}
+/* chuyển xem dạng điện thoại cho các màn admin */
+.view-toggle { display: none; gap: .4rem; align-items: center; margin-left: auto; }
+body.is-admin .view-toggle { display: inline-flex; }
+.vp-btn { font: 500 .8125rem var(--ui); border: 1px solid var(--rule); background: none; border-radius: 999px; padding: .3rem .8rem; color: var(--muted); cursor: pointer; }
+.vp-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+body.phone #screen-a-list.active, body.phone #screen-a-new.active, body.phone #screen-a-review.active {
+  width: 390px; max-width: calc(100% - 2rem); height: 780px; margin: 1rem auto 3rem; padding: 0;
+  border: 10px solid #111; border-radius: 40px; overflow-y: auto; background: var(--paper); box-shadow: 0 20px 50px rgba(10, 20, 30, .25); }
+body.phone #screen-a-list .proto-note, body.phone #screen-a-new .proto-note, body.phone #screen-a-review .proto-note { display: none; }
+body.phone #screen-a-list .jb-app, body.phone #screen-a-review .jb-app { border: 0; border-radius: 0; }
+body.phone #screen-a-new .page, body.phone #screen-a-review .page { padding: 1rem 0 3rem; }
+body.phone #screen-a-new .page { padding: 1rem 1rem 3rem; }
+body.phone #screen-a-review .back-link { margin-left: 1rem; }
+
+.proto-screen { container-type: inline-size; container-name: vp; }
+@container vp (max-width: 52rem) { .salary-row { grid-template-columns: 1fr 1fr; } }
+</style></head><body>
+<div class="proto-bar">
+  <b>PROTOTYPE · dữ liệu mẫu, chưa phải bản thật</b>
+  <span class="proto-group">ADMIN</span>
+  <button class="proto-tab active" data-screen="a-list">A1 · Danh sách job</button>
+  <button class="proto-tab" data-screen="a-new">A2 · Đăng job</button>
+  <button class="proto-tab" data-screen="a-review">A3 · Duyệt kết quả AI</button>
+  <span class="proto-group">USER</span>
+  <button class="proto-tab" data-screen="u-list">U1 · Việc làm (desktop)</button>
+  <button class="proto-tab" data-screen="u-mobile">U2 · Việc làm (mobile)</button>
+  <span class="view-toggle"><span class="proto-group">XEM DẠNG</span><button class="vp-btn active" type="button" data-vp="desktop">Desktop</button><button class="vp-btn" type="button" data-vp="phone">Điện thoại</button></span>
+</div>
+
+<!-- ============ A1. ADMIN · DANH SÁCH (cùng bố cục user site) ============ -->
+<section class="proto-screen active" id="screen-a-list">
+  <div class="proto-note"><b>Admin · <code>/admin/jobs</code></b> (cùng Basic Auth với <code>/admin/queue</code>). Danh sách dùng <b>cùng bố cục với user site</b>: thẻ job ở trái (thêm nhãn Đang đăng / Bản nháp / Hết hạn), chi tiết ở phải kèm nút <b>Sửa · Đăng/Gỡ tin · Xem trên site · Xoá</b>. Dùng được trên điện thoại: bấm nút <b>Điện thoại</b> ở thanh trên để xem (danh sách rồi chi tiết, có nút ← quay lại). Bấm <b>+ Đăng job</b> để thử luồng chính.</div>
+  <div class="jb-app">
+    <header class="jb-top">
+      <a href="#" class="jb-brand">Đọc gì hôm nay</a><span class="badge-brief">Admin</span>
+      <nav class="admin-nav"><a href="#">Hàng đợi link</a><a href="#">Yêu cầu token</a><a href="#" class="active">Việc làm</a></nav>
+      <label class="jb-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="a-q" placeholder="Tìm job…" autocomplete="off"></label>
+      <button class="jb-apply" type="button" data-goto="a-new">+ Đăng job</button>
+    </header>
+    <div class="jb-filters" id="a-filters"></div>
+    <div class="toast" id="a-toast" hidden></div>
+    <div class="jb-layout adm" id="a-layout" data-view="list">
+      <aside class="jb-list" id="a-list" aria-label="Danh sách job"></aside>
+      <section class="jb-detail" id="a-detail" aria-label="Chi tiết job"></section>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A2. ADMIN · ĐĂNG JOB ============ -->
+<section class="proto-screen" id="screen-a-new">
+  <div class="proto-note"><b>Admin · <code>/admin/jobs/new</code>.</b> Đúng như yêu cầu: <b>chỉ 1 textarea + 1 ô upload file</b>, điền một trong hai hoặc cả hai. AI đọc và map vào đúng định dạng job (xem A3). Thử nhanh bằng các nút <b>Điền mẫu</b>, hoặc dán nội dung bất kỳ / chọn file <code>.txt</code> để xem bộ trích xuất chạy trên dữ liệu thật của bạn. <i>PDF/DOCX/ảnh: prototype chưa đọc được nội dung, sẽ dùng kết quả mẫu.</i></div>
+  <main class="page">
+    <a href="#" class="back-link" data-goto="a-list">← Danh sách job</a>
+    <h1>Đăng job mới</h1>
+    <p class="lead">Dán nội dung tin tuyển dụng hoặc tải file lên. AI sẽ tự điền các trường.</p>
+
+    <div class="post-card" id="post-card">
+      <div class="samples"><span>Điền mẫu:</span>
+        <button type="button" class="chip" data-sample="fb">Bài Facebook</button>
+        <button type="button" class="chip" data-sample="jd">JD đầy đủ</button>
+        <button type="button" class="chip" data-sample="pdf">File PDF</button>
+        <button type="button" class="chip" data-sample="clear">Xoá</button>
+      </div>
+      <div class="field"><label for="jt">Nội dung tin tuyển dụng</label>
+        <textarea id="jt" placeholder="Dán JD, bài đăng Facebook/LinkedIn, email… vào đây"></textarea></div>
+      <p class="or">và / hoặc</p>
+      <div class="field" style="margin-bottom:1.1rem"><label>File đính kèm</label>
+        <label class="dropzone" id="dz"><input type="file" id="jf" accept=".pdf,.doc,.docx,.txt,.md,image/*">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+          <span><b>Chọn file</b> hoặc kéo thả vào đây</span><small>PDF, Word, ảnh chụp, .txt · tối đa 10 MB</small></label>
+        <div class="file-chip" id="file-chip" hidden><span class="file-ext" id="file-ext">pdf</span><span id="file-name"></span><small id="file-size"></small><button class="x" type="button" id="file-x" aria-label="Bỏ file">×</button></div>
+      </div>
+      <button class="btn-main" id="extract" type="button" style="width:100%" disabled>Trích xuất bằng AI</button>
+      <p class="hint" style="text-align:center">Chưa đăng ngay: bạn sẽ xem và chỉnh kết quả ở bước tiếp theo.</p>
+    </div>
+
+    <div class="post-card progress-card" id="progress-card" hidden>
+      <b>AI đang xử lý…</b>
+      <ul class="steps" id="steps">
+        <li><span class="ic"></span><span>Đọc nội dung &amp; file</span></li>
+        <li><span class="ic"></span><span>Nhận diện công ty, vị trí, lương, liên hệ…</span></li>
+        <li><span class="ic"></span><span>Chuẩn hoá về định dạng job</span></li>
+      </ul>
+    </div>
+  </main>
+</section>
+
+<!-- ============ A3. ADMIN · DUYỆT KẾT QUẢ ============ -->
+<section class="proto-screen" id="screen-a-review">
+  <div class="proto-note"><b>Admin · <code>/admin/jobs/&lt;id&gt;</code>.</b> Cùng bố cục với trang người dùng: <b>form chỉnh sửa ở trái, bản xem trước đúng như trên site ở phải</b>, cập nhật ngay khi bạn gõ. Muốn xem nhanh: <b>thanh tóm tắt</b> ngay dưới tiêu đề cho biết AI điền được bao nhiêu trường và liệt kê các ô thiếu / suy luận, <b>bấm chip để nhảy thẳng tới ô đó</b>. Trên điện thoại có tab <b>Chỉnh sửa | Kết quả</b> (mặc định mở Kết quả) và thanh nút Đăng luôn dính ở đầu màn hình. Nhãn: <span class="flag miss">thiếu</span> không tìm thấy trong nguồn · <span class="flag inf">suy luận</span> AI đoán, nên kiểm tra · <span class="flag img">từ file</span> đọc từ file. Chỉ <b>Chức danh</b> là bắt buộc; nút <b>Đăng</b> nằm trên thanh đầu.</div>
+  <main class="page" style="max-width:76rem" id="review-root"></main>
+</section>
+
+<!-- ============ U1. USER · DESKTOP (kiểu LinkedIn) ============ -->
+<section class="proto-screen" id="screen-u-list">
+  <div class="proto-note"><b>User · <code>/viec-lam</code> và <code>/viec-lam/&lt;slug&gt;</code>.</b> Bố cục giống LinkedIn Jobs: <b>danh sách thẻ job ở trái, chi tiết job ở phải</b> (mỗi bên cuộn riêng); bấm thẻ nào thì khung phải đổi theo, URL đổi thành <code>/viec-lam/&lt;slug&gt;</code> nên chia sẻ/refresh vẫn đúng. Hàng pill lọc: hình thức, cấp bậc, có ghi lương; tìm không dấu. Job hết hạn mờ đi và xếp cuối. Job bạn đăng ở Admin xuất hiện ngay ở đây.</div>
+  <div class="jb-app">
+    <header class="jb-top">
+      <a href="#" class="jb-brand">Đọc gì hôm nay</a>
+      <nav class="site-tabs"><a href="#">Bài viết</a><a href="#" class="active">Việc làm<span class="count" id="u-tabcount">0</span></a></nav>
+      <label class="jb-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="u-q" placeholder="Tìm theo chức danh, công ty, kỹ năng…" autocomplete="off"></label>
+    </header>
+    <div class="jb-filters">
+      <select class="jb-pill" id="u-mode"><option value="all">Hình thức</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">Onsite</option></select>
+      <select class="jb-pill" id="u-level"><option value="all">Cấp bậc</option><option value="intern">Intern / Fresher</option><option value="junior">Junior</option><option value="mid">Mid</option><option value="senior">Senior</option><option value="lead">Lead+</option></select>
+      <button class="jb-pill" id="u-sal" type="button">Có ghi lương</button>
+      <button class="jb-clear" id="u-clear" type="button" hidden>Xoá bộ lọc</button>
+    </div>
+    <div class="jb-layout">
+      <aside class="jb-list" id="jb-list" aria-label="Danh sách việc làm"></aside>
+      <section class="jb-detail" id="jb-detail" aria-label="Chi tiết việc làm"></section>
+    </div>
+  </div>
+</section>
+
+<!-- ============ U2. USER · MOBILE ============ -->
+<section class="proto-screen" id="screen-u-mobile">
+  <div class="proto-note"><b>Trên điện thoại</b> (dưới ~830px) bố cục chia đôi gập lại thành 2 bước giống app LinkedIn: <b>danh sách</b> → bấm một thẻ → <b>trang chi tiết</b> (URL <code>/viec-lam/&lt;slug&gt;</code>, nút ← quay lại danh sách) với thanh <b>Ứng tuyển</b> dính ở đáy màn hình. Thử bấm trong khung điện thoại.</div>
+  <div class="split"><div class="device">
+    <div class="device-status"><span>9:41</span><span>●●● 5G</span></div>
+    <div class="m-screen" id="m-screen"></div>
+  </div></div>
+</section>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+const TODAY = '2026-11-09';
+const MODE = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'Onsite' };
+const dmy = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
+const dayDiff = (a, b) => Math.round((new Date(a) - new Date(b)) / 864e5);
+const isExpired = (j) => !!j.deadline && j.deadline < TODAY;
+const ago = (iso) => { const d = dayDiff(TODAY, iso); return d <= 0 ? 'Đăng hôm nay' : d === 1 ? 'Đăng hôm qua' : d < 7 ? `Đăng ${d} ngày trước` : `Đăng ${Math.floor(d / 7)} tuần trước`; };
+const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
+const fmtN = (n) => Number(n).toLocaleString('vi-VN');
+function salaryShort(s) {
+  if (!s) return '';
+  if (s.nego) return 'Thoả thuận';
+  const u = s.unit === 'USD' ? ' USD' : ' triệu';
+  if (s.min && s.max) return `${fmtN(s.min)} – ${fmtN(s.max)}${u}`;
+  if (s.min) return `Từ ${fmtN(s.min)}${u}`;
+  if (s.max) return `Tới ${fmtN(s.max)}${u}`;
+  return '';
+}
+const salaryLong = (s) => { const t = salaryShort(s); return !t || s.nego ? t : `${t}${s.unit === 'USD' ? '' : ' VND'} / ${s.per || 'tháng'}`; };
+const hasSalary = (s) => !!s && (s.nego || s.min || s.max);
+
+/* ---------------- Dữ liệu ---------------- */
+let nextId = 10;
+const jobs = [
+  { id: 1, title: 'Backend Engineer (Node.js)', company: 'MoMo', location: 'TP. Hồ Chí Minh', mode: 'hybrid', level: 'Senior', type: 'Full-time', salary: { min: 35, max: 55, unit: 'triệu VND', per: 'tháng', nego: false }, headcount: 2, deadline: '2026-11-25', skills: ['Node.js', 'TypeScript', 'PostgreSQL', 'Redis'],
+    desc: ['Xây dựng các service thanh toán bằng Node.js/TypeScript, phục vụ hàng triệu giao dịch mỗi ngày.', 'Tối ưu hiệu năng, độ tin cậy của hệ thống phân tán; tham gia on-call theo lịch.'], req: ['4+ năm kinh nghiệm backend, ít nhất 2 năm với Node.js.', 'Hiểu PostgreSQL, Redis; có kinh nghiệm thiết kế API.'], ben: ['Thưởng tháng 13, review lương 2 lần/năm.', 'Bảo hiểm sức khoẻ cao cấp.'],
+    contact: { email: 'hr.backend@momo.example', phone: '0900 000 000', person: 'Chị Lan — Talent Acquisition', link: 'https://careers.momo.example/backend-nodejs' }, status: 'published', posted: '2026-11-07' },
+  { id: 2, title: 'AI Engineer (LLM / RAG)', company: 'FPT Software', location: 'Hà Nội', mode: 'remote', level: 'Mid – Senior', type: 'Full-time', salary: { min: 2000, max: 3000, unit: 'USD', per: 'tháng', nego: false }, headcount: 2, deadline: '2026-11-30', skills: ['Python', 'LangChain', 'Vector DB'],
+    desc: ['Thiết kế pipeline RAG và đánh giá chất lượng LLM cho khách hàng Nhật.', 'Triển khai dịch vụ inference, theo dõi chi phí và độ trễ.'], req: ['3+ năm Python, từng làm LangChain hoặc LlamaIndex.'], ben: ['Làm việc hoàn toàn từ xa, họp theo giờ Việt Nam.'],
+    contact: { email: 'talent@fpt-ai.example', phone: '', person: '', link: '' }, status: 'published', posted: '2026-11-04' },
+  { id: 3, title: 'Tuyển Fresher / Junior Java', company: '', location: 'Đà Nẵng', mode: 'onsite', level: 'Fresher / Junior', type: '', salary: { min: null, max: null, unit: 'triệu VND', per: 'tháng', nego: true }, headcount: 5, deadline: '', skills: ['Java', 'Spring Boot'],
+    desc: ['Công ty đang tuyển 5 bạn Fresher/Junior Java, ưu tiên biết Spring Boot.'], req: [], ben: [],
+    contact: { email: 'tuyendung@congty.example', phone: '', person: '', link: '' }, status: 'published', posted: '2026-11-08' },
+  { id: 4, title: 'DevOps Engineer', company: 'VNG', location: 'TP. Hồ Chí Minh', mode: 'onsite', level: 'Mid', type: 'Full-time', salary: null, headcount: null, deadline: '2026-10-20', skills: ['AWS', 'Terraform'],
+    desc: ['Vận hành hạ tầng AWS và pipeline CI/CD cho các sản phẩm game.'], req: ['3+ năm DevOps, thành thạo Terraform.'], ben: [],
+    contact: { email: 'jobs@vng.example', phone: '', person: '', link: '' }, status: 'published', posted: '2026-10-13' },
+  { id: 5, title: 'QA Automation Engineer', company: 'Grab', location: 'TP. Hồ Chí Minh', mode: 'hybrid', level: 'Mid', type: 'Full-time', salary: { min: 25, max: 40, unit: 'triệu VND', per: 'tháng', nego: false }, headcount: 1, deadline: '2026-12-05', skills: ['Selenium', 'Python'],
+    desc: ['Xây dựng bộ test tự động cho ứng dụng giao hàng.'], req: ['2+ năm QA automation.'], ben: [],
+    contact: { email: '', phone: '', person: '', link: '' }, status: 'draft', posted: '2026-11-09' },
+];
+
+/* ---------------- "AI" mô phỏng ---------------- */
+const SAMPLE_FB = `🔥 TIKI TUYỂN DỤNG 🔥
+Senior Backend Engineer (Go) - HCM
+💰 40-60tr gross | Hybrid 3 ngày/tuần tại VP Q.7
+📌 Yêu cầu: 4+ năm backend, ít nhất 2 năm Go, biết Kubernetes, Kafka, PostgreSQL
+🎁 Quyền lợi: Thưởng tháng 13, bảo hiểm sức khoẻ cao cấp
+⏰ Hạn nộp: 25/11/2026
+📩 CV về hr.backend@tiki.example hoặc Zalo 0900 000 000 (chị Lan)`;
+const SAMPLE_JD = `FPT Software – AI Engineer (LLM / RAG)
+Địa điểm: Hà Nội (làm việc remote 100%)
+Mức lương: 2.000 – 3.000 USD
+Cấp bậc: Mid – Senior | Full-time | Số lượng: 2
+
+Mô tả công việc
+- Thiết kế pipeline RAG và đánh giá chất lượng LLM cho khách hàng Nhật
+- Triển khai dịch vụ inference, theo dõi chi phí và độ trễ
+Yêu cầu
+- 3+ năm Python, từng làm LangChain hoặc LlamaIndex
+- Hiểu về vector database (pgvector, Qdrant)
+Quyền lợi
+- Làm việc từ xa, họp theo giờ Việt Nam
+- Thưởng dự án, ngân sách học tập
+Hạn nộp: 30/11/2026
+Gửi CV: talent@fpt-ai.example`;
+
+const blankJob = () => ({ title: '', company: '', location: '', mode: '', level: '', type: '', salary: { min: null, max: null, unit: 'triệu VND', per: 'tháng', nego: false }, headcount: null, deadline: '', skills: [], desc: [], req: [], ben: [], contact: { email: '', phone: '', person: '', link: '' } });
+
+const SAMPLE_RESULTS = {
+  fb: () => ({ job: { ...blankJob(), title: 'Senior Backend Engineer (Go)', company: 'Tiki', location: 'TP. Hồ Chí Minh', mode: 'hybrid', level: 'Senior', type: 'Full-time',
+      salary: { min: 40, max: 60, unit: 'triệu VND', per: 'tháng', nego: false }, deadline: '2026-11-25', skills: ['Go', 'Kubernetes', 'Kafka', 'PostgreSQL'],
+      req: ['4+ năm backend, ít nhất 2 năm Go', 'Biết Kubernetes, Kafka, PostgreSQL'], ben: ['Thưởng tháng 13', 'Bảo hiểm sức khoẻ cao cấp'],
+      contact: { email: 'hr.backend@tiki.example', phone: '0900 000 000', person: 'Chị Lan', link: '' } },
+    over: { type: 'inf', level: 'inf' },
+    notes: ['“HCM”, “Q.7” được chuẩn hoá thành TP. Hồ Chí Minh.', '“40-60tr gross” được quy đổi thành 40 – 60 triệu VND / tháng.', 'Bài đăng không có mô tả công việc: để trống, đừng bịa.'] }),
+  jd: () => ({ job: { ...blankJob(), title: 'AI Engineer (LLM / RAG)', company: 'FPT Software', location: 'Hà Nội', mode: 'remote', level: 'Mid – Senior', type: 'Full-time',
+      salary: { min: 2000, max: 3000, unit: 'USD', per: 'tháng', nego: false }, headcount: 2, deadline: '2026-11-30', skills: ['Python', 'LangChain', 'Vector DB'],
+      desc: ['Thiết kế pipeline RAG và đánh giá chất lượng LLM cho khách hàng Nhật', 'Triển khai dịch vụ inference, theo dõi chi phí và độ trễ'], req: ['3+ năm Python, từng làm LangChain hoặc LlamaIndex', 'Hiểu về vector database (pgvector, Qdrant)'], ben: ['Làm việc từ xa, họp theo giờ Việt Nam', 'Thưởng dự án, ngân sách học tập'],
+      contact: { email: 'talent@fpt-ai.example', phone: '', person: '', link: '' } },
+    over: {}, notes: ['“pgvector, Qdrant” được gộp thành kỹ năng “Vector DB”.', 'JD đầy đủ ba mục (mô tả / yêu cầu / quyền lợi): tách đúng từng mục.'] }),
+  pdf: () => ({ job: { ...blankJob(), title: 'DevOps Engineer', company: 'VNG', location: 'TP. Hồ Chí Minh', mode: 'onsite', level: 'Mid', type: 'Full-time',
+      salary: { min: null, max: null, unit: 'triệu VND', per: 'tháng', nego: true }, headcount: 1, deadline: '2026-12-15', skills: ['AWS', 'Terraform', 'Docker'],
+      desc: ['Vận hành hạ tầng AWS và pipeline CI/CD cho các sản phẩm game', 'Viết Terraform module dùng chung giữa các team'], req: ['3+ năm DevOps, thành thạo Terraform', 'Có kinh nghiệm Docker, giám sát và alert'], ben: ['Lương thoả thuận theo năng lực', '14 ngày phép/năm'],
+      contact: { email: 'jobs@vng.example', phone: '', person: '', link: 'https://careers.vng.example/devops' } },
+    over: { salary: 'file', mode: 'file', level: 'file', type: 'file', headcount: 'file', deadline: 'file', skills: 'file', desc: 'file', req: 'file', ben: 'file', email: 'file', link: 'file', title: 'file', company: 'file', location: 'file' },
+    notes: ['Đọc từ file PDF 2 trang (bản thật dùng trích văn bản; ảnh/scan dùng Claude vision).', '“Mức lương: thoả thuận” → bật cờ “Thoả thuận”, không điền số.'] }),
+};
+
+const KNOWN_SKILLS = [['Go', /\bgolang\b|\bGo\b(?!\s+to)/], ['Python', /python/i], ['Java', /\bjava\b/i], ['JavaScript', /javascript|\bjs\b/i], ['TypeScript', /typescript/i], ['React', /\breact(\.js)?\b/i], ['Node.js', /node\.?js/i], ['PHP', /\bphp\b/i], ['Laravel', /laravel/i], ['Django', /django/i], ['Spring Boot', /spring ?boot/i], ['Kubernetes', /kubernetes|\bk8s\b/i], ['Docker', /docker/i], ['AWS', /\baws\b/i], ['Terraform', /terraform/i], ['Kafka', /kafka/i], ['PostgreSQL', /postgres/i], ['MySQL', /mysql/i], ['Redis', /redis/i], ['LangChain', /langchain/i], ['Vector DB', /vector ?db|vector database|pgvector|qdrant/i], ['Flutter', /flutter/i], ['Selenium', /selenium/i]];
+const SECTIONS = [[/^(mô tả|job description|responsibilit|công việc)/i, 'desc'], [/^(yêu cầu|requirement|qualification|ứng viên)/i, 'req'], [/^(quyền lợi|phúc lợi|benefit|we offer|đãi ngộ)/i, 'ben']];
+
+// Bộ trích xuất đơn giản (regex) thay cho Claude, chỉ để prototype chạy được với văn bản tuỳ ý.
+function heuristic(text) {
+  const job = blankJob(); const over = {}; const notes = [];
+  const raw = text.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  const clean = (s) => s.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+  const lines = raw.map(clean).filter(Boolean);
+  const roleRe = /(engineer|developer|\bdev\b|tester|\bqa\b|devops|designer|manager|lead\b|analyst|architect|kỹ sư|lập trình)/i;
+  const titleLine = lines.find((l) => roleRe.test(l) && l.length < 100) || lines[0] || '';
+  job.title = titleLine.split(/\s[-–|]\s/).filter((p) => roleRe.test(p))[0] || titleLine.split(/\s[-–|]\s/)[0] || '';
+  job.title = job.title.replace(/^tuyển\s+/i, '').replace(/^.*?\s[–-]\s(?=.*(engineer|developer))/i, '').trim();
+  const email = text.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/); if (email) job.contact.email = email[0];
+  const phone = text.match(/(?:\+?84|0)[\d .]{8,12}\d/); if (phone) job.contact.phone = phone[0].trim();
+  const link = text.match(/https?:\/\/[^\s)]+/); if (link) job.contact.link = link[0];
+  const sal = text.match(/(\d[\d.,]*)\s*[-–~]\s*(\d[\d.,]*)\s*(tr\b|triệu|usd|\$)/i);
+  if (sal) { const usd = /usd|\$/i.test(sal[3]); const val = (v) => num(usd ? v.replace(/[.,](?=\d{3})/g, '') : v); job.salary = { min: val(sal[1]), max: val(sal[2]), unit: usd ? 'USD' : 'triệu VND', per: 'tháng', nego: false }; notes.push(`Lương “${sal[0].trim()}” được chuẩn hoá thành ${salaryShort(job.salary)}.`); }
+  else if (/thoả thuận|thỏa thuận|negotiable/i.test(text)) job.salary.nego = true;
+  const L = text.toLowerCase();
+  if (/remote|từ xa/.test(L)) job.mode = 'remote'; else if (/hybrid/.test(L)) job.mode = 'hybrid'; else if (/onsite|on-site|tại văn phòng/.test(L)) job.mode = 'onsite';
+  if (/lead\b|trưởng nhóm|manager/.test(L)) job.level = 'Lead+'; else if (/senior|\bsr\b/.test(L)) job.level = 'Senior'; else if (/\bmid\b|middle/.test(L)) job.level = 'Mid'; else if (/junior|fresher/.test(L)) job.level = 'Junior'; else if (/intern|thực tập/.test(L)) job.level = 'Intern';
+  if (job.level) over.level = 'inf';
+  if (/full[- ]?time|toàn thời gian/.test(L)) job.type = 'Full-time'; else if (/part[- ]?time|bán thời gian/.test(L)) job.type = 'Part-time'; else if (/freelance|contract|hợp đồng/.test(L)) job.type = 'Contract';
+  if (/hồ chí minh|hcm|sài gòn|sg\b/.test(L)) job.location = 'TP. Hồ Chí Minh'; else if (/hà nội|\bhn\b/.test(L)) job.location = 'Hà Nội'; else if (/đà nẵng/.test(L)) job.location = 'Đà Nẵng';
+  const co = text.match(/(?:[Cc]ông ty|[Cc]ompany)\s*[:\-]?\s*([A-ZÀ-Ỹ][\w&.]*(?:\s[A-ZÀ-Ỹ][\w&.]*){0,3})/);
+  if (co) job.company = co[1].trim(); else { const lead = lines[0].match(/^([A-ZÀ-Ỹ][\w&.]*(?:\s[A-ZÀ-Ỹ][\w&.]*){0,2})\s(?:tuyển|[–-]|is hiring)/i); if (lead && !roleRe.test(lead[1])) { job.company = lead[1]; over.company = 'inf'; } }
+  const hc = text.match(/(?:số lượng|tuyển)\s*:?\s*(\d{1,3})\b/i); if (hc) job.headcount = +hc[1];
+  const dl = text.split(/\n/).map((l) => (/hạn|deadline|trước ngày|đến ngày/i.test(l) ? l.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/) : null)).find(Boolean);
+  if (dl) job.deadline = `${dl[3]}-${dl[2].padStart(2, '0')}-${dl[1].padStart(2, '0')}`;
+  job.skills = KNOWN_SKILLS.filter(([, re]) => re.test(text)).map(([n]) => n);
+  let cur = null; const pre = [];
+  for (const line of lines) {
+    const sec = SECTIONS.find(([re]) => re.test(line));
+    if (sec) { cur = sec[1]; const rest = line.replace(/^[^:]{0,40}[:\-–]\s*/, ''); if (rest && rest !== line) job[cur].push(rest); continue; }
+    if (line === titleLine || (job.company && line.includes(job.company)) || /@|hạn nộp|deadline|lương|mức lương|địa điểm|cấp bậc/i.test(line)) { if (!/^(hạn|gửi cv)/i.test(line)) cur = cur; continue; }
+    if (cur) job[cur].push(line.replace(/^[-•*]\s*/, '')); else pre.push(line);
+  }
+  if (!job.desc.length && pre.length) { job.desc = pre.slice(0, 4); over.desc = 'inf'; notes.push('Không thấy mục “Mô tả công việc”: AI dùng các dòng giới thiệu làm mô tả (nên kiểm tra).'); }
+  return { job, over, notes };
+}
+
+const FIELD_VALUE = { title: (j) => j.title, company: (j) => j.company, location: (j) => j.location, mode: (j) => j.mode, level: (j) => j.level, type: (j) => j.type, salary: (j) => hasSalary(j.salary), headcount: (j) => j.headcount, deadline: (j) => j.deadline, skills: (j) => j.skills.length, desc: (j) => j.desc.length, req: (j) => j.req.length, ben: (j) => j.ben.length, email: (j) => j.contact.email, phone: (j) => j.contact.phone, person: (j) => j.contact.person, link: (j) => j.contact.link };
+function computeFlags(job, over = {}) {
+  const f = {};
+  for (const k in FIELD_VALUE) f[k] = FIELD_VALUE[k](job) ? (over[k] || 'ok') : 'miss';
+  return f;
+}
+
+/* ---------------- Điều hướng ---------------- */
+let review = null;     // { job, flags, notes, srcText, fileName, json, editingId }
+let selectedId = null; // job đang chọn ở trang người dùng
+const hooks = { 'a-list': () => renderAdminList(), 'a-review': () => { if (!review) startReview(SAMPLE_RESULTS.fb(), { srcText: SAMPLE_FB }); else renderReview(); } };
+function show(name) {
+  $$('.proto-screen').forEach((s) => s.classList.toggle('active', s.id === `screen-${name}`));
+  $$('.proto-tab').forEach((t) => t.classList.toggle('active', t.dataset.screen === name));
+  document.body.classList.toggle('is-admin', name.startsWith('a-'));
+  hooks[name]?.();
+  window.scrollTo(0, 0);
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('.proto-tab'); if (t) return show(t.dataset.screen);
+  const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); show(g.dataset.goto); }
+  else if (e.target.closest('a[href="#"]')) e.preventDefault();
+});
+
+/* ---------------- A1: danh sách admin (cùng bố cục user site) ---------------- */
+const statusOf = (j) => (j.status === 'draft' ? ['draft', 'Bản nháp'] : isExpired(j) ? ['expired', 'Hết hạn'] : ['published', 'Đang đăng']);
+const statusBadge = (j) => { const [cls, label] = statusOf(j); return `<span class="status ${cls}" style="margin:0">${label}</span>`; };
+const adminActions = (j) => `<div class="jb-actions"><button class="jb-apply" type="button" data-aact="edit" data-id="${j.id}">Sửa</button><button class="jb-ghost" type="button" data-aact="toggle" data-id="${j.id}">${j.status === 'published' ? 'Gỡ tin' : 'Đăng'}</button>${j.status === 'published' ? `<button class="jb-ghost" type="button" data-aact="view" data-id="${j.id}">Xem trên site</button>` : ''}<button class="jb-ghost danger" type="button" data-aact="del" data-id="${j.id}">Xoá</button></div>`;
+let aFilter = 'all', aQ = '', aSel = null, aView = 'list';
+function adminJobs() {
+  const q = norm(aQ);
+  return jobs.filter((j) => (aFilter === 'all' || statusOf(j)[0] === aFilter) && (!q || norm([j.title, j.company, j.location].join(' ')).includes(q))).sort((a, b) => b.id - a.id);
+}
+function renderAdminList(toast) {
+  const list = adminJobs();
+  if (!list.some((j) => j.id === aSel)) aSel = list[0]?.id ?? null;
+  const sel = jobs.find((j) => j.id === aSel);
+  const t = $('#a-toast'); t.hidden = !toast; if (toast) t.innerHTML = toast;
+  const cnt = (k) => jobs.filter((j) => k === 'all' || statusOf(j)[0] === k).length;
+  $('#a-filters').innerHTML = [['all', 'Tất cả'], ['published', 'Đang đăng'], ['draft', 'Bản nháp'], ['expired', 'Hết hạn']].map(([k, l]) => `<button class="jb-pill ${aFilter === k ? 'on' : ''}" type="button" data-afilter="${k}">${l} · ${cnt(k)}</button>`).join('');
+  $('#a-list').innerHTML = `<div class="jb-list-head"><b>${list.length} job</b>${aQ ? ` cho “${esc(aQ)}”` : ''}</div>` + (list.map((j) => cardHtml(j, j.id === aSel, true)).join('') || '<div class="u-empty">Chưa có job nào. Bấm “+ Đăng job”.</div>');
+  $('#a-detail').innerHTML = sel ? `<button class="jb-back adm-back" type="button" data-aback>← Danh sách</button>` + detailHtml(sel, false, true) : '<div class="u-empty">Chọn một job ở bên trái.</div>';
+  $('#a-layout').dataset.view = sel ? aView : 'list';
+}
+$('#a-filters').addEventListener('click', (e) => { const b = e.target.closest('[data-afilter]'); if (b) { aFilter = b.dataset.afilter; aView = 'list'; renderAdminList(); } });
+$('#a-q').addEventListener('input', (e) => { aQ = e.target.value.trim(); aView = 'list'; renderAdminList(); });
+$('#a-list').addEventListener('click', (e) => { const c = e.target.closest('[data-ajob]'); if (c) { aSel = +c.dataset.ajob; aView = 'detail'; renderAdminList(); $('#a-detail').scrollTop = 0; } });
+$('#a-detail').addEventListener('click', (e) => {
+  if (e.target.closest('[data-aback]')) { aView = 'list'; renderAdminList(); return; }
+  const b = e.target.closest('[data-aact]'); if (!b) return;
+  const j = jobs.find((x) => x.id === +b.dataset.id); if (!j) return;
+  if (b.dataset.aact === 'edit') { review = { job: structuredClone(j), flags: computeFlags(j), notes: [], editingId: j.id }; show('a-review'); }
+  else if (b.dataset.aact === 'toggle') { j.status = j.status === 'published' ? 'draft' : 'published'; renderAdminList(); }
+  else if (b.dataset.aact === 'view') openOnSite(j.id);
+  else if (b.dataset.aact === 'del') {
+    if (b.dataset.armed) { jobs.splice(jobs.indexOf(j), 1); aView = 'list'; renderAdminList(); return; }
+    b.dataset.armed = '1'; b.textContent = 'Bấm lần nữa để xoá'; // 2 bước thay cho confirm(), dễ bấm trên điện thoại
+    setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Xoá'; } }, 3000);
+  }
+});
+$$('[data-vp]').forEach((b) => b.addEventListener('click', () => { document.body.classList.toggle('phone', b.dataset.vp === 'phone'); $$('[data-vp]').forEach((x) => x.classList.toggle('active', x === b)); }));
+document.body.classList.add('is-admin');
+
+/* ---------------- A2: form đăng (1 textarea + 1 file) ---------------- */
+let curFile = null;
+const jt = $('#jt'), jf = $('#jf');
+const refreshBtn = () => { $('#extract').disabled = !(jt.value.trim() || curFile); };
+const fmtSize = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+function setFile(f) {
+  curFile = f;
+  $('#dz').hidden = !!f; $('#file-chip').hidden = !f;
+  if (f) { $('#file-ext').textContent = (f.name.split('.').pop() || 'file').slice(0, 4); $('#file-name').textContent = f.name; $('#file-size').textContent = fmtSize(f.size); }
+  refreshBtn();
+}
+jt.addEventListener('input', refreshBtn);
+jf.addEventListener('change', () => { if (jf.files[0]) setFile(jf.files[0]); jf.value = ''; });
+$('#file-x').addEventListener('click', () => setFile(null));
+const dz = $('#dz');
+['dragenter', 'dragover'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('over'); }));
+['dragleave', 'drop'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('over'); }));
+dz.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+$$('[data-sample]').forEach((b) => b.addEventListener('click', () => {
+  const k = b.dataset.sample;
+  jt.value = k === 'fb' ? SAMPLE_FB : k === 'jd' ? SAMPLE_JD : '';
+  setFile(k === 'pdf' ? { name: 'JD-DevOps-VNG.pdf', size: 184320, demo: 'pdf' } : null);
+}));
+
+$('#extract').addEventListener('click', async () => {
+  const text = jt.value.trim(), file = curFile;
+  $('#post-card').hidden = true; $('#progress-card').hidden = false;
+  const lis = $$('#steps li'); lis.forEach((l) => l.classList.remove('doing', 'done'));
+  const tick = (i) => new Promise((r) => { lis[i].classList.add('doing'); setTimeout(() => { lis[i].classList.replace('doing', 'done'); r(); }, 750); });
+  let src = text, readable = true;
+  if (file && file.text && /\.(txt|md)$/i.test(file.name)) src = [text, await file.text()].filter(Boolean).join('\n');
+  else if (file) readable = false;
+  await tick(0); await tick(1);
+  let result, notes = [];
+  if (src === SAMPLE_FB) result = SAMPLE_RESULTS.fb();
+  else if (src === SAMPLE_JD) result = SAMPLE_RESULTS.jd();
+  else if (!src && file) { result = SAMPLE_RESULTS.pdf(); result.notes.unshift(`Prototype không đọc được “${file.name}” nên dùng kết quả mẫu.`); }
+  else { result = heuristic(src); if (!readable) result.notes.unshift(`Prototype chưa đọc được nội dung “${file.name}”: chỉ dùng phần text bạn dán.`); }
+  await tick(2);
+  $('#post-card').hidden = false; $('#progress-card').hidden = true;
+  startReview(result, { srcText: src, fileName: file?.name });
+  show('a-review');
+});
+
+/* ---------------- A3: duyệt kết quả ---------------- */
+function startReview(result, ctx) {
+  const flags = computeFlags(result.job, result.over);
+  review = { job: result.job, flags, notes: result.notes || [], srcText: ctx.srcText || '', fileName: ctx.fileName || '', json: JSON.stringify(result.job, null, 2), editingId: null };
+}
+const flagHtml = (f) => (f === 'miss' ? '<span class="flag miss">thiếu</span>' : f === 'inf' ? '<span class="flag inf">suy luận</span>' : f === 'file' ? '<span class="flag img">từ file</span>' : '');
+const fclass = (f) => (f === 'miss' ? 'missing' : f === 'inf' ? 'inferred' : f === 'file' ? 'fromfile' : '');
+function renderReview() {
+  const { job: j, flags: f, notes, editingId } = review;
+  const field = (k, label, inner, cls = '') => `<div class="field ${fclass(f[k])} ${cls}" data-key="${k}"><label>${label}${flagHtml(f[k])}</label>${inner}</div>`;
+  const inp = (id, v, extra = '') => `<input id="f-${id}" value="${esc(v)}" ${extra}>`;
+  const opt = (vals, cur) => vals.map(([v, l]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${l}</option>`).join('');
+  const ta = (id, arr, rows = 4) => `<textarea id="f-${id}" rows="${rows}">${esc(arr.join('\n'))}</textarea>`;
+  const missing = Object.values(f).filter((x) => x === 'miss').length;
+  const check = Object.values(f).filter((x) => x === 'inf').length;
+  const filled = Object.keys(f).length - missing;
+  const s = j.salary;
+  $('#review-root').innerHTML = `
+    <a href="#" class="back-link" data-goto="${editingId ? 'a-list' : 'a-new'}">← ${editingId ? 'Danh sách job' : 'Nhập lại'}</a>
+    <div class="jb-app">
+      <div class="rv-sticky">
+        <header class="jb-top">
+          <span class="rv-title">${editingId ? 'Sửa job' : 'Duyệt kết quả AI'}</span><span class="status draft">${editingId ? 'Đang sửa' : 'Chưa đăng'}</span>
+          <div class="rv-actions">
+            <button class="jb-ghost" type="button" id="rv-cancel">Huỷ</button>
+            ${editingId ? '' : '<button class="jb-ghost" type="button" id="rv-draft">Lưu nháp</button>'}
+            <button class="jb-apply" type="button" id="rv-publish">${editingId ? 'Lưu thay đổi' : 'Đăng'}</button>
+          </div>
+        </header>
+        <div class="rv-tabs"><button type="button" class="${editingId ? 'on' : ''}" data-rvtab="edit">Chỉnh sửa</button><button type="button" class="${editingId ? '' : 'on'}" data-rvtab="result">Kết quả</button></div>
+      </div>
+      ${editingId ? '' : '<div class="rv-bar" id="rv-bar"></div>'}
+      <div class="jb-layout rv" id="rv-layout" data-view="${editingId ? 'edit' : 'result'}">
+        <aside class="jb-list jb-form">
+          <form id="rv-form" onsubmit="return false">
+            <h3>Thông tin chính</h3>
+            ${field('title', 'Chức danh *', inp('title', j.title))}
+            ${field('company', 'Công ty', inp('company', j.company))}
+            ${field('location', 'Địa điểm', inp('location', j.location))}
+            <div class="two">
+              ${field('mode', 'Hình thức', `<select id="f-mode">${opt([['', '— chưa rõ —'], ['remote', 'Remote'], ['hybrid', 'Hybrid'], ['onsite', 'Onsite']], j.mode)}</select>`)}
+              ${field('type', 'Loại hợp đồng', `<select id="f-type">${opt([['', '— chưa rõ —'], ['Full-time', 'Full-time'], ['Part-time', 'Part-time'], ['Contract', 'Contract'], ['Intern', 'Intern']], j.type)}</select>`)}
+            </div>
+            <div class="two">
+              ${field('level', 'Cấp bậc', inp('level', j.level, 'list="levels"') + '<datalist id="levels"><option>Intern</option><option>Fresher / Junior</option><option>Mid</option><option>Mid – Senior</option><option>Senior</option><option>Lead+</option></datalist>')}
+              ${field('headcount', 'Số lượng tuyển', inp('headcount', j.headcount ?? '', 'type="number" min="1"'))}
+            </div>
+            ${field('deadline', 'Hạn nộp hồ sơ', inp('deadline', j.deadline, 'type="date"'))}
+            <h3>Mức lương</h3>
+            ${field('salary', 'Khoảng lương', `<div class="salary-row">${inp('smin', s.min ?? '', 'type="number" placeholder="Từ"')}${inp('smax', s.max ?? '', 'type="number" placeholder="Đến"')}
+              <select id="f-sunit">${opt([['triệu VND', 'triệu VND'], ['USD', 'USD']], s.unit)}</select><select id="f-sper">${opt([['tháng', '/ tháng'], ['năm', '/ năm'], ['giờ', '/ giờ']], s.per)}</select></div>
+              <label class="check"><input type="checkbox" id="f-nego" ${s.nego ? 'checked' : ''}> Lương thoả thuận (ẩn số)</label>`)}
+            <h3>Kỹ năng &amp; nội dung</h3>
+            ${field('skills', 'Kỹ năng <small style="display:inline">(cách nhau bằng dấu phẩy)</small>', inp('skills', j.skills.join(', ')))}
+            ${field('desc', 'Mô tả công việc <small style="display:inline">(mỗi dòng một ý)</small>', ta('desc', j.desc))}
+            ${field('req', 'Yêu cầu', ta('req', j.req))}
+            ${field('ben', 'Quyền lợi', ta('ben', j.ben))}
+            <h3>Thông tin liên hệ</h3>
+            <div class="two">${field('email', 'Email', inp('email', j.contact.email, 'type="email"'))}${field('phone', 'SĐT / Zalo', inp('phone', j.contact.phone))}</div>
+            <div class="two">${field('person', 'Người liên hệ', inp('person', j.contact.person))}${field('link', 'Link ứng tuyển', inp('link', j.contact.link))}</div>
+          </form>
+          ${editingId ? '' : `<details><summary>Nội dung gốc &amp; JSON AI trả về</summary>
+            ${review.fileName ? `<div class="file-chip" style="margin:.6rem 0 0"><span class="file-ext">${esc(review.fileName.split('.').pop().slice(0, 4))}</span><span>${esc(review.fileName)}</span></div>` : ''}
+            ${review.srcText ? `<div class="raw src-text">${esc(review.srcText)}</div>` : '<p class="hint">Không có text, chỉ có file.</p>'}
+            <div class="json-box"><pre><code>${esc(review.json)}</code></pre></div></details>
+          <p class="legend" style="margin-top:1rem">Ô <b>vàng</b> = thiếu · ô <b>tím</b> = AI suy luận · ô <b>xanh</b> = từ file.</p>`}
+        </aside>
+        <section class="jb-detail" aria-label="Xem trước trên site người dùng">
+          <div class="jb-prev-label"><span>Thẻ trong danh sách</span><span>Xem trước · cập nhật khi bạn gõ</span></div>
+          <div id="rv-preview-card"></div>
+          <div class="jb-prev-label"><span>Trang chi tiết</span></div>
+          <div id="rv-preview-detail"></div>
+        </section>
+      </div>
+    </div>`;
+  updatePreview(); refreshBar();
+  $$('#rv-form input, #rv-form textarea, #rv-form select').forEach((el) => el.addEventListener('input', () => { el.closest('.field')?.classList.remove('missing', 'inferred', 'fromfile'); updatePreview(); refreshBar(); }));
+  $('#rv-publish').addEventListener('click', () => saveReview('published'));
+  $('#rv-draft')?.addEventListener('click', () => saveReview('draft'));
+  $('#rv-cancel').addEventListener('click', () => { review = null; show(editingId ? 'a-list' : 'a-new'); });
+}
+const FIELD_LABEL = { title: 'Chức danh', company: 'Công ty', location: 'Địa điểm', mode: 'Hình thức', level: 'Cấp bậc', type: 'Loại hợp đồng', salary: 'Lương', headcount: 'Số lượng', deadline: 'Hạn nộp', skills: 'Kỹ năng', desc: 'Mô tả', req: 'Yêu cầu', ben: 'Quyền lợi', email: 'Email', phone: 'SĐT', person: 'Người liên hệ', link: 'Link ứng tuyển' };
+// Thanh tóm tắt: đếm lại theo trạng thái ô hiện tại, nên chip biến mất khi bạn đã điền/sửa ô đó.
+function refreshBar() {
+  const bar = $('#rv-bar'); if (!bar) return;
+  const fields = $$('#rv-form .field[data-key]');
+  const flagged = fields.filter((f) => f.classList.contains('missing') || f.classList.contains('inferred'));
+  const miss = flagged.filter((f) => f.classList.contains('missing')).length, inf = flagged.length - miss;
+  const chip = (f) => `<button type="button" class="rv-chip ${f.classList.contains('missing') ? 'missing' : 'inferred'}" data-jump="${f.dataset.key}">${FIELD_LABEL[f.dataset.key]}</button>`;
+  bar.innerHTML = `<div class="rv-sum"><b>AI điền ${fields.length - miss}/${fields.length} trường</b>${miss ? `<span class="flag miss">${miss} thiếu</span>` : ''}${inf ? `<span class="flag inf">${inf} suy luận</span>` : ''}${flagged.length ? '<span style="color:var(--muted)">· bấm để nhảy tới ô cần xem</span>' : ''}</div>
+    ${flagged.length ? `<div class="rv-jump">${flagged.map(chip).join('')}</div>` : '<div class="rv-jump"><span class="rv-ok">Đã xem xong các ô cần kiểm tra. Có thể đăng.</span></div>'}
+    ${review.notes.length ? `<details class="rv-notes"><summary>Ghi chú của AI (${review.notes.length})</summary><ul>${review.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></details>` : ''}`;
+}
+function setRvView(v) { $('#rv-layout').dataset.view = v; $$('[data-rvtab]').forEach((b) => b.classList.toggle('on', b.dataset.rvtab === v)); }
+$('#review-root').addEventListener('click', (e) => {
+  const tab = e.target.closest('[data-rvtab]'); if (tab) return setRvView(tab.dataset.rvtab);
+  const jump = e.target.closest('[data-jump]'); if (!jump) return;
+  setRvView('edit');
+  const fld = $(`#rv-form .field[data-key="${jump.dataset.jump}"]`);
+  fld.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  fld.querySelector('input, textarea, select')?.focus({ preventScroll: true });
+});
+function updatePreview() {
+  const d = readForm();
+  d.posted = (review.editingId && jobs.find((x) => x.id === review.editingId)?.posted) || TODAY;
+  if (!d.title) d.title = '(Chưa có chức danh)';
+  $('#rv-preview-card').innerHTML = cardHtml(d, true);
+  $('#rv-preview-detail').innerHTML = detailHtml(d);
+}
+function readForm() {
+  const g = (id) => $(`#f-${id}`).value.trim();
+  const lines = (id) => g(id).split('\n').map((s) => s.replace(/^[-•*]\s*/, '').trim()).filter(Boolean);
+  return { title: g('title'), company: g('company'), location: g('location'), mode: g('mode'), level: g('level'), type: g('type'),
+    salary: { min: num(g('smin')), max: num(g('smax')), unit: g('sunit'), per: g('sper'), nego: $('#f-nego').checked },
+    headcount: num(g('headcount')), deadline: g('deadline'), skills: g('skills').split(',').map((s) => s.trim()).filter(Boolean),
+    desc: lines('desc'), req: lines('req'), ben: lines('ben'), contact: { email: g('email'), phone: g('phone'), person: g('person'), link: g('link') } };
+}
+function saveReview(status) {
+  const data = readForm();
+  if (!data.title) { alert('Cần nhập Chức danh.'); $('#f-title').focus(); return; }
+  const wasEditing = review.editingId;
+  if (wasEditing) { const j = jobs.find((x) => x.id === wasEditing); Object.assign(j, data); }
+  else jobs.push({ id: nextId++, ...data, status, posted: TODAY });
+  const saved = wasEditing ? jobs.find((x) => x.id === wasEditing) : jobs[jobs.length - 1];
+  review = null; jt.value = ''; setFile(null);
+  const link = saved.status === 'published' ? ` <a href="#" data-view="${saved.id}">Xem trên site người dùng →</a>` : '';
+  aSel = saved.id; aView = 'detail'; aFilter = 'all'; aQ = ''; $('#a-q').value = '';
+  show('a-list');
+  renderAdminList(`${wasEditing ? 'Đã lưu' : status === 'published' ? 'Đã đăng' : 'Đã lưu nháp'} “${esc(saved.title)}”.${link}`);
+}
+$('#a-toast').addEventListener('click', (e) => { const a = e.target.closest('[data-view]'); if (a) { e.preventDefault(); openOnSite(+a.dataset.view); } });
+
+/* ---------------- Người dùng: bố cục kiểu LinkedIn ---------------- */
+let uQ = '', uMode = 'all', uLevel = 'all', uSal = false, mView = 'list';
+const LEVEL_KEYS = { intern: ['intern', 'fresher'], junior: ['junior', 'fresher'], mid: ['mid'], senior: ['senior'], lead: ['lead', 'manager'] };
+function userJobs() {
+  const q = norm(uQ);
+  return jobs.filter((j) => j.status === 'published'
+    && (uMode === 'all' || j.mode === uMode)
+    && (uLevel === 'all' || LEVEL_KEYS[uLevel].some((k) => norm(j.level).includes(k)))
+    && (!uSal || hasSalary(j.salary))
+    && (!q || q.split(/\s+/).every((t) => norm([j.title, j.company, j.location, ...j.skills, ...j.desc].join(' ')).includes(t))))
+    .sort((a, b) => isExpired(a) - isExpired(b) || b.posted.localeCompare(a.posted) || b.id - a.id);
+}
+const where = (j) => [j.company || 'Chưa rõ công ty', j.location].filter(Boolean).join(' · ');
+const avatar = (j, cls = '') => `<div class="jb-avatar ${cls}" style="--h:${[...(j.company || j.title)].reduce((a, c) => a + c.charCodeAt(0), 0) % 360}">${esc((j.company || j.title)[0].toUpperCase())}</div>`;
+function cardHtml(j, sel, admin = false) {
+  const exp = isExpired(j), fresh = dayDiff(TODAY, j.posted) <= 3 && !exp, brief = !exp && !j.company && !j.req.length && !j.ben.length;
+  return `<article class="jb-card ${sel ? 'sel' : ''} ${exp ? 'expired' : ''}" ${admin ? 'data-ajob' : 'data-job'}="${j.id}">${avatar(j)}
+    <div class="jb-card-body"><div class="jb-title">${esc(j.title)}</div>
+      <div class="jb-co">${esc(j.company || 'Chưa rõ công ty')}</div>
+      <div class="jb-loc">${esc(j.location)}${j.mode ? ` (${MODE[j.mode]})` : ''}</div>
+      ${hasSalary(j.salary) ? `<span class="jb-sal">${esc(salaryShort(j.salary))}</span>` : ''}
+      <div class="jb-foot">${admin ? statusBadge(j) : exp ? '<span class="badge-expired">Đã hết hạn</span>' : brief ? '<span class="badge-brief">Tin khái quát</span>' : fresh ? '<span class="badge-new">Mới</span>' : ''}<span>${ago(j.posted)}</span></div>
+    </div></article>`;
+}
+function detailHtml(j, m = false, admin = false) {
+  const exp = isExpired(j), left = j.deadline ? dayDiff(j.deadline, TODAY) : null, c = j.contact;
+  const section = (h, arr) => (arr.length ? `<h2>${h}</h2><ul>${arr.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+  const chips = [hasSalary(j.salary) ? `<span class="jb-chip sal">${esc(salaryLong(j.salary))}</span>` : '', j.mode ? `<span class="jb-chip">${MODE[j.mode]}</span>` : '', j.level ? `<span class="jb-chip">${esc(j.level)}</span>` : '', j.type ? `<span class="jb-chip">${esc(j.type)}</span>` : '', j.headcount ? `<span class="jb-chip">Tuyển ${j.headcount} người</span>` : ''].join('');
+  const contact = [['Email', c.email && `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`], ['SĐT / Zalo', esc(c.phone)], ['Người liên hệ', esc(c.person)], ['Link ứng tuyển', c.link && `<a href="${esc(c.link)}" target="_blank" rel="noopener">${esc(c.link.replace(/^https?:\/\//, ''))}</a>`]].filter(([, v]) => v);
+  const apply = `<button class="jb-apply" type="button" data-apply ${exp ? 'disabled' : ''}>${exp ? 'Đã hết hạn' : 'Ứng tuyển'}</button>`;
+  return `<div class="jb-dhead ${m ? 'm' : ''}">
+      <div class="jb-dco">${avatar(j, 'lg')}<div><b>${esc(j.company || 'Chưa rõ công ty')}</b><div class="jb-dmeta">${esc(j.location)}</div></div></div>
+      <h1>${esc(j.title)}</h1>
+      <div class="jb-dmeta"><span>${ago(j.posted)}</span>${j.deadline ? `<span>· ${exp ? 'Hết hạn' : 'Hạn nộp'} ${dmy(j.deadline)}${exp ? '' : ` (còn ${left} ngày)`}</span>` : ''}${dayDiff(TODAY, j.posted) <= 3 && !exp ? '<span class="badge-new">Mới</span>' : ''}</div>
+      <div class="jb-chips">${chips}</div>
+      ${admin ? adminActions(j) : m ? '' : `<div class="jb-actions">${apply}<button class="jb-ghost" type="button" data-share>Sao chép link</button></div>`}
+    </div>
+    <div class="jb-dbody ${m ? 'm' : ''}">
+      ${admin && j.status === 'draft' ? '<div class="jb-warn">Bản nháp: chỉ admin nhìn thấy, người dùng chưa thấy tin này.</div>' : ''}${exp ? '<div class="jb-warn">Tin này đã hết hạn nộp hồ sơ.</div>' : ''}
+      ${!j.company && !j.req.length && !j.ben.length && !exp ? '<div class="jb-warn">Tin này chỉ có thông tin khái quát. Hãy liên hệ trực tiếp để biết thêm chi tiết.</div>' : ''}
+      ${section('Mô tả công việc', j.desc)}${section('Yêu cầu', j.req)}${section('Quyền lợi', j.ben)}
+      ${j.skills.length ? `<h2>Kỹ năng</h2><span class="topics" style="margin:0">${j.skills.map((s) => `<a class="topic-pill-sm" href="#">${esc(s)}</a>`).join('')}</span>` : ''}
+      <section class="apply-box" data-apply-box><h3>Cách ứng tuyển</h3>${contact.length ? `<dl>${contact.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl><p class="hint" style="margin-top:.6rem">Gợi ý: ghi “Ứng tuyển qua Đọc gì hôm nay” khi liên hệ.</p>` : '<p class="hint" style="margin:0">Tin này chưa có thông tin liên hệ.</p>'}</section>
+      <p class="source-box">Thông tin do nhà tuyển dụng cung cấp, vui lòng xác nhận lại trực tiếp. <a href="#">Báo cáo tin này</a></p>
+      ${m ? `<div class="jb-mbar">${apply}</div>` : ''}
+    </div>`;
+}
+function renderUser() {
+  const list = userJobs();
+  $('#u-tabcount').textContent = jobs.filter((j) => j.status === 'published' && !isExpired(j)).length;
+  if (!list.some((j) => j.id === selectedId)) selectedId = list[0]?.id ?? null;
+  const sel = jobs.find((j) => j.id === selectedId);
+  const filtered = uQ || uMode !== 'all' || uLevel !== 'all' || uSal;
+  const n = list.filter((j) => !isExpired(j)).length;
+  if ($('#u-q').value !== uQ) $('#u-q').value = uQ;
+  $('#u-mode').value = uMode; $('#u-level').value = uLevel;
+  $('#u-mode').classList.toggle('on', uMode !== 'all'); $('#u-level').classList.toggle('on', uLevel !== 'all'); $('#u-sal').classList.toggle('on', uSal);
+  $('#u-clear').hidden = !filtered;
+  // desktop
+  const keep = $('#jb-list').scrollTop;
+  $('#jb-list').innerHTML = `<div class="jb-list-head"><b>${n} việc làm</b> đang tuyển${uQ ? ` cho “${esc(uQ)}”` : ''}</div>` + (list.map((j) => cardHtml(j, j.id === selectedId)).join('') || '<div class="u-empty">Không có việc làm phù hợp. Thử bỏ bớt bộ lọc.</div>');
+  $('#jb-list').scrollTop = keep;
+  $('#jb-detail').innerHTML = sel ? detailHtml(sel) : '<div class="u-empty">Chọn một việc làm ở bên trái để xem chi tiết.</div>';
+  // mobile
+  const m = $('#m-screen');
+  if (mView === 'detail' && sel) {
+    m.innerHTML = `<button class="jb-back" type="button" data-mback>← Việc làm</button><div class="jb-detail-m">${detailHtml(sel, true)}</div>`;
+  } else {
+    m.innerHTML = `<div class="jb-mtop"><b style="font-size:1.15rem">Việc làm</b><span class="badge-brief">${n} đang tuyển</span></div>
+      <label class="jb-search" style="margin-bottom:.6rem"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="m-q" placeholder="Tìm việc làm…" value="${esc(uQ)}"></label>
+      <div class="jb-scroll">${[['all', 'Tất cả'], ['remote', 'Remote'], ['hybrid', 'Hybrid'], ['onsite', 'Onsite']].map(([k, l]) => `<button class="jb-pill ${uMode === k ? 'on' : ''}" type="button" data-mmode="${k}">${l}</button>`).join('')}<button class="jb-pill ${uSal ? 'on' : ''}" type="button" data-msal>Có ghi lương</button></div>
+      ${list.map((j) => cardHtml(j, false)).join('') || '<div class="u-empty">Không có việc làm phù hợp.</div>'}`;
+  }
+}
+hooks['u-list'] = hooks['u-mobile'] = renderUser;
+function openOnSite(id) { uQ = ''; uMode = 'all'; uLevel = 'all'; uSal = false; selectedId = id; mView = 'detail'; show('u-list'); }
+
+$('#u-q').addEventListener('input', (e) => { uQ = e.target.value.trim(); renderUser(); });
+$('#u-mode').addEventListener('change', (e) => { uMode = e.target.value; renderUser(); });
+$('#u-level').addEventListener('change', (e) => { uLevel = e.target.value; renderUser(); });
+$('#u-sal').addEventListener('click', () => { uSal = !uSal; renderUser(); });
+$('#u-clear').addEventListener('click', () => { uQ = ''; uMode = 'all'; uLevel = 'all'; uSal = false; renderUser(); });
+function userClick(e) {
+  const card = e.target.closest('[data-job]');
+  if (card) { e.preventDefault(); selectedId = +card.dataset.job; if (card.closest('#m-screen')) mView = 'detail'; renderUser(); (card.closest('#m-screen') || $('#jb-detail')).scrollTop = 0; $('#jb-detail').scrollTop = 0; return; }
+  if (e.target.closest('[data-mback]')) { mView = 'list'; renderUser(); return; }
+  const mm = e.target.closest('[data-mmode]'); if (mm) { uMode = mm.dataset.mmode; renderUser(); return; }
+  if (e.target.closest('[data-msal]')) { uSal = !uSal; renderUser(); return; }
+  if (e.target.closest('[data-apply]')) { e.target.closest('.jb-detail, .m-screen').querySelector('[data-apply-box]').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const sh = e.target.closest('[data-share]'); if (sh) { sh.textContent = 'Đã sao chép ✓'; setTimeout(() => { sh.textContent = 'Sao chép link'; }, 1500); }
+}
+$('#jb-list').addEventListener('click', userClick); $('#jb-detail').addEventListener('click', userClick); $('#m-screen').addEventListener('click', userClick);
+$('#m-screen').addEventListener('input', (e) => { if (e.target.id === 'm-q') { uQ = e.target.value.trim(); const pos = e.target.selectionStart; renderUser(); const i = $('#m-q'); i.focus(); i.setSelectionRange(pos, pos); } });
+
+
+renderAdminList();
+</script>
+</body></html>

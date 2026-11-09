@@ -6,6 +6,7 @@
   <header class="shelf-head">
     <h1>Đọc gì hôm nay</h1>
     <p>Kho bài kỹ thuật bạn tự chọn, dịch sẵn sang tiếng Việt để đọc khi rảnh.</p>
+    <nav class="site-tabs" aria-label="Khu vực"><a href="/" class="active">Bài viết</a><a href="/viec-lam">Việc làm</a></nav>
     <form class="search-form" action="/" method="get" role="search">
       {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
       {% if active_tag %}<input type="hidden" name="tag" value="{{ active_tag }}">{% endif %}

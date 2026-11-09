@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Đăng job mới · Admin{% endblock %}
+{% block meta_robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/jobs.css">{% endblock %}
+{% block content %}
+<main class="page">
+  <a href="/admin/jobs" class="back-link">← Danh sách job</a>
+  <h1>Đăng job mới</h1>
+  <p class="lead">Dán nội dung tin tuyển dụng hoặc tải file lên. AI sẽ tự điền các trường, bạn xem và chỉnh ở bước sau rồi mới đăng.</p>
+
+  <div class="post-card" id="post-card">
+    <p class="form-error" id="err" role="alert" hidden></p>
+    <div class="field"><label for="jt">Nội dung tin tuyển dụng</label>
+      <textarea id="jt" placeholder="Dán JD, bài đăng Facebook/LinkedIn, email… vào đây" maxlength="40000"></textarea></div>
+    <p class="or">và / hoặc</p>
+    <div class="field" style="margin-bottom:1.1rem"><label>File đính kèm</label>
+      <label class="dropzone" id="dz"><input type="file" id="jf" accept="{% for e in exts %}.{{ e }}{% if not loop.last %},{% endif %}{% endfor %}">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+        <span><b>Chọn file</b> hoặc kéo thả vào đây</span><small>PDF, Word (.docx), ảnh chụp, .txt · tối đa 10 MB</small></label>
+      <div class="file-chip" id="file-chip" hidden><span class="file-ext" id="file-ext"></span><span id="file-name"></span><small id="file-size"></small><button class="x" type="button" id="file-x" aria-label="Bỏ file">×</button></div>
+    </div>
+    <button class="btn-main" id="extract" type="button" style="width:100%" disabled>Trích xuất bằng AI</button>
+    <p class="hint" style="text-align:center">Chưa đăng ngay: tin được lưu thành bản nháp để bạn duyệt.</p>
+  </div>
+
+  <div class="post-card" id="progress-card" hidden>
+    <b>AI đang xử lý…</b>
+    <ul class="steps" id="steps">
+      <li><span class="ic"></span><span>Đọc nội dung &amp; file</span></li>
+      <li><span class="ic"></span><span>Nhận diện công ty, vị trí, lương, liên hệ…</span></li>
+      <li><span class="ic"></span><span>Chuẩn hoá về định dạng job</span></li>
+    </ul>
+    <p class="hint">Thường mất vài giây; PDF/ảnh lâu hơn một chút.</p>
+  </div>
+</main>
+<script src="/static/admin_job_new.js"></script>
+{% endblock %}

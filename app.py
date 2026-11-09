@@ -26,6 +26,7 @@ import config
 import db
 import emailer
 import fetcher
+import jobs
 import llm
 import public_api
 import search
@@ -144,11 +145,19 @@ def sitemap_xml(request: Request):
         rows = c.execute(
             "SELECT slug, created_at FROM articles WHERE status='translated' ORDER BY created_at DESC"
         ).fetchall()
-    urls = [f"<url><loc>{base}/</loc></url>"]
+        job_rows = c.execute(
+            "SELECT slug, published_at FROM jobs WHERE status='published' ORDER BY published_at DESC"
+        ).fetchall()
+    urls = [f"<url><loc>{base}/</loc></url>", f"<url><loc>{base}/viec-lam</loc></url>"]
     for r in rows:
         urls.append(
             f"<url><loc>{base}/bai-viet/{r['slug']}</loc>"
             f"<lastmod>{r['created_at'][:10]}</lastmod></url>"
+        )
+    for r in job_rows:
+        urls.append(
+            f"<url><loc>{base}/viec-lam/{r['slug']}</loc>"
+            f"<lastmod>{(r['published_at'] or '')[:10]}</lastmod></url>"
         )
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>'
@@ -396,6 +405,7 @@ def admin_revoke_api_key(key_id: int):
 
 
 app.include_router(public_api.make_router(public_base))
+app.include_router(jobs.make_router(templates))
 
 
 # ---------- Báo cáo sự cố / đóng góp ----------
