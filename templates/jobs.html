@@ -35,13 +35,14 @@
 </main>
 
 <div class="jb-wrap">
+  {% if not jobs %}
+  <div class="u-empty jb-none">{% if qs %}Không có việc làm phù hợp. Thử từ khoá khác, bớt bộ lọc, hoặc không cần gõ dấu. <a href="/viec-lam">Xoá bộ lọc</a>{% else %}Chưa có tin tuyển dụng nào. Quay lại sau nhé.{% endif %}</div>
+  {% else %}
   <div class="jb-layout" id="jb-layout" data-view="{{ 'detail' if explicit else 'list' }}">
     <aside class="jb-list" id="jb-list" aria-label="Danh sách việc làm">
       <div class="jb-list-head"><b>{{ jobs | rejectattr('expired') | list | length }} việc làm</b> đang tuyển{% if q %} cho “{{ q }}”{% endif %}{% if qs %} · <a href="/viec-lam">Xoá bộ lọc</a>{% endif %}</div>
       {% for j in jobs %}
       <a class="jb-card{% if selected and j.id == selected.id %} sel{% endif %}{% if j.expired %} expired{% endif %}" href="/viec-lam/{{ j.slug }}{{ qs }}">{{ card_inner(j) }}</a>
-      {% else %}
-      <div class="u-empty">{% if qs %}Không có việc làm phù hợp. Thử từ khoá khác, bớt bộ lọc, hoặc không cần gõ dấu.{% else %}Chưa có tin tuyển dụng nào.{% endif %}</div>
       {% endfor %}
     </aside>
     <section class="jb-detail" id="jb-detail" aria-label="Chi tiết việc làm">
@@ -51,6 +52,7 @@
       </div>
     </section>
   </div>
+  {% endif %}
 </div>
 <script src="/static/jobs.js"></script>
 {% endblock %}

@@ -5,6 +5,7 @@
   const body = document.getElementById('jb-detail-body');
   const detail = document.getElementById('jb-detail');
   const wide = window.matchMedia('(min-width: 52.01rem)');
+  if (!list) return;  // chưa có tin nào: trang chỉ có dòng thông báo
 
   async function open(card) {
     const url = new URL(card.href);

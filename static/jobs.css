@@ -28,16 +28,19 @@ button.topic-pill { font-family: var(--ui); background: none; cursor: pointer; }
 .jb-headrow .jb-apply { align-self: stretch; display: flex; align-items: center; white-space: nowrap; }
 
 /* ---------- Vùng danh sách + chi tiết ---------- */
-.jb-wrap { max-width: 72rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+/* Mép trái trùng với mép trái nội dung của .shelf (cột 46rem căn giữa) để tiêu đề, tab, ô tìm kiếm,
+   pill và danh sách thẳng một trục; phần chi tiết mở rộng sang phải. */
+.jb-wrap { max-width: 70rem; margin: 0 1.25rem 0 max(1.25rem, calc((100% - 46rem) / 2 + 1.25rem)); padding: 0 0 4rem; }
 .jb-layout { display: grid; grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr); align-items: start; border-top: 1px solid var(--rule); }
 .jb-list { border-right: 1px solid var(--rule); min-width: 0; }
-.jb-list-head { padding: 0.8rem 0.9rem; font-size: 0.8rem; color: var(--muted); border-bottom: 1px solid var(--rule); }
+.jb-list-head { padding: 0.8rem 0.9rem 0.8rem 0; font-size: 0.8rem; color: var(--muted); border-bottom: 1px solid var(--rule); }
 .jb-list-head b { color: var(--ink); }
-.u-empty { color: var(--muted); padding: 2rem 0.9rem; font-size: 0.9rem; }
+.u-empty { color: var(--muted); padding: 2rem 0.9rem 2rem 0; font-size: 0.9rem; }
+.jb-none { border-top: 1px solid var(--rule); }
 .u-empty[hidden] { display: none; }
 
 /* ---------- Thẻ job ---------- */
-.jb-card { display: flex; gap: 0.8rem; padding: 1rem 0.9rem; border-bottom: 1px solid var(--rule); cursor: pointer; position: relative; color: var(--ink); text-decoration: none; }
+.jb-card { display: flex; gap: 0.8rem; padding: 1rem 0.9rem 1rem 0.9rem; border-bottom: 1px solid var(--rule); cursor: pointer; position: relative; color: var(--ink); text-decoration: none; }
 .jb-card:hover, .jb-card.sel { background: var(--sheet); }
 .jb-card.sel::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); }
 .jb-card.expired { opacity: 0.55; }
@@ -158,7 +161,8 @@ button.topic-pill { font-family: var(--ui); background: none; cursor: pointer; }
 
 /* ---------- Màn hẹp: danh sách -> chi tiết ---------- */
 @media (max-width: 52rem) {
-  .jb-wrap { padding: 0 0 3rem; }
+  .jb-wrap { margin: 0; padding: 0 0 3rem; }
+  .u-empty { padding-left: 1.25rem; }
   .jb-layout, .jb-layout.rv { grid-template-columns: 1fr; }
   .jb-list { border-right: 0; }
   .jb-detail { position: static; max-height: none; overflow: visible; }
